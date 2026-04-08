@@ -1,0 +1,190 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>My Profile — Civic Connect</title>
+  <link rel="stylesheet" href="/css/style.css">
+  <style>
+    .profile-hero { background:linear-gradient(135deg,var(--primary),var(--accent)); color:white; border-radius:var(--radius-lg); padding:2.5rem; margin-bottom:2rem; display:flex; align-items:center; gap:2rem; flex-wrap:wrap; }
+    .profile-avatar { width:80px; height:80px; border-radius:50%; background:rgba(255,255,255,0.2); display:flex; align-items:center; justify-content:center; font-size:2.5rem; border:4px solid rgba(255,255,255,0.3); flex-shrink:0; }
+    .profile-info h1 { font-size:1.8rem; margin-bottom:4px; }
+    .profile-info .level-badge { display:inline-flex; align-items:center; gap:6px; background:rgba(255,255,255,0.2); padding:6px 14px; border-radius:20px; font-size:0.85rem; font-weight:600; backdrop-filter:blur(10px); }
+
+    .streak-card { background:linear-gradient(135deg,#F97316,#EF4444); color:white; border-radius:var(--radius-lg); padding:2rem; text-align:center; position:relative; overflow:hidden; }
+    .streak-card::before { content:'🔥'; position:absolute; font-size:6rem; opacity:0.1; right:-10px; top:-10px; }
+    .streak-value { font-size:3.5rem; font-weight:800; }
+    .streak-label { font-size:0.9rem; opacity:0.9; margin-top:4px; }
+    .streak-milestones { display:flex; gap:8px; justify-content:center; margin-top:1rem; flex-wrap:wrap; }
+    .milestone { padding:4px 10px; border-radius:20px; font-size:0.75rem; font-weight:600; }
+    .milestone.achieved { background:rgba(255,255,255,0.3); }
+    .milestone.upcoming { background:rgba(255,255,255,0.1); opacity:0.6; }
+
+    .points-card { text-align:center; }
+    .points-value { font-size:3rem; font-weight:800; color:var(--primary); }
+    .points-label { color:var(--text-secondary); font-size:0.9rem; }
+
+    .level-progress { margin-top:1.5rem; }
+    .level-bar-bg { background:var(--bg); border-radius:20px; height:16px; overflow:hidden; position:relative; }
+    .level-bar-fill { height:100%; border-radius:20px; background:linear-gradient(90deg,var(--primary),var(--accent)); transition:width 1s ease; }
+    .level-labels { display:flex; justify-content:space-between; margin-top:6px; font-size:0.75rem; color:var(--text-secondary); }
+
+    .info-grid { display:grid; grid-template-columns:repeat(auto-fit, minmax(280px,1fr)); gap:1.25rem; margin-bottom:2rem; }
+
+    .history-item { display:flex; align-items:center; justify-content:space-between; padding:12px 0; border-bottom:1px solid var(--border); }
+    .history-item:last-child { border-bottom:none; }
+    .history-action { font-weight:500; font-size:0.9rem; }
+    .history-date { font-size:0.75rem; color:var(--text-secondary); }
+    .history-points { font-weight:700; font-size:0.9rem; }
+    .history-points.positive { color:var(--success); }
+    .history-points.negative { color:var(--danger); }
+  </style>
+</head>
+<body>
+  <nav class="navbar">
+    <div class="navbar-brand"><div class="icon">🏛️</div><span>Civic Connect</span></div>
+    <div class="navbar-right">
+      <a href="/citizen" class="btn btn-ghost btn-sm">Dashboard</a>
+      <a href="/track" class="btn btn-ghost btn-sm">Track</a>
+      <a href="/rewards" class="btn btn-ghost btn-sm">Rewards</a>
+      <button class="btn btn-ghost btn-sm" onclick="logout()">Logout</button>
+    </div>
+  </nav>
+
+  <div class="dashboard">
+    <!-- Profile Hero -->
+    <div class="profile-hero" id="profileHero">
+      <div class="profile-avatar" id="avatar">👤</div>
+      <div class="profile-info">
+        <h1 id="profileName">Loading...</h1>
+        <p style="opacity:0.8" id="profileEmail"></p>
+        <div class="level-badge" id="levelBadge">⭐ Level 1 — Newcomer</div>
+      </div>
+    </div>
+
+    <!-- Stats Grid -->
+    <div class="info-grid">
+      <!-- Streak -->
+      <div class="streak-card" id="streakCard">
+        <div class="streak-value" id="streakValue">0</div>
+        <div class="streak-label">Day Reporting Streak 🔥</div>
+        <div class="streak-milestones" id="milestones"></div>
+      </div>
+
+      <!-- Points -->
+      <div class="card points-card">
+        <div class="card-body">
+          <div class="points-value" id="pointsValue">0</div>
+          <div class="points-label">Total Points Earned</div>
+          <div class="level-progress" id="levelProgress"></div>
+        </div>
+      </div>
+
+      <!-- Stats -->
+      <div class="card">
+        <div class="card-body">
+          <div class="stats-grid" style="margin-bottom:0">
+            <div class="stat-card blue" style="margin:0">
+              <div class="stat-label">Total Reports</div>
+              <div class="stat-value" id="totalReports">0</div>
+            </div>
+            <div class="stat-card green" style="margin:0">
+              <div class="stat-label">Resolved</div>
+              <div class="stat-value" id="resolvedReports">0</div>
+            </div>
+            <div class="stat-card yellow" style="margin:0">
+              <div class="stat-label">Pending</div>
+              <div class="stat-value" id="pendingReports">0</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Points History -->
+    <div class="card">
+      <div class="card-header">
+        <h3>📜 Points History</h3>
+      </div>
+      <div class="card-body" id="pointsHistory">
+        <div class="empty-state"><div class="empty-icon">📭</div><h3>No activity yet</h3></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="toast-container" id="toastContainer"></div>
+
+  <script>
+    const API = '';
+    const token = localStorage.getItem('token');
+    const user = JSON.parse(localStorage.getItem('user') || 'null');
+    if (!token || !user || user.role !== 'citizen') { localStorage.clear(); window.location.href = '/'; }
+
+    function logout() { localStorage.clear(); window.location.href = '/'; }
+
+    async function loadProfile() {
+      try {
+        const res = await fetch(API + '/api/profile', { headers: { 'Authorization': 'Bearer ' + token } });
+        if (!res.ok) throw new Error('Failed');
+        const profile = await res.json();
+
+        // Hero
+        document.getElementById('profileName').textContent = profile.name;
+        document.getElementById('profileEmail').textContent = profile.email;
+        document.getElementById('avatar').textContent = profile.name.charAt(0).toUpperCase();
+        document.getElementById('levelBadge').innerHTML = `⭐ Level ${profile.level.level} — ${profile.level.name}`;
+
+        // Streak
+        document.getElementById('streakValue').textContent = profile.streak;
+        const milestones = [3, 7, 14, 30];
+        document.getElementById('milestones').innerHTML = milestones.map(m => {
+          const achieved = profile.streak >= m;
+          return `<span class="milestone ${achieved ? 'achieved' : 'upcoming'}">${achieved ? '✅' : '🔒'} ${m} days ${achieved ? '' : `(+${({3:20,7:50,14:100,30:200})[m]}pts)`}</span>`;
+        }).join('');
+
+        // Points
+        document.getElementById('pointsValue').textContent = profile.points;
+
+        // Level progress
+        const current = profile.level;
+        const next = profile.nextLevel;
+        const progressPct = next.minPoints > current.minPoints
+          ? Math.min(100, Math.round(((profile.points - current.minPoints) / (next.minPoints - current.minPoints)) * 100))
+          : 100;
+        document.getElementById('levelProgress').innerHTML = `
+          <div class="level-bar-bg"><div class="level-bar-fill" style="width:${progressPct}%"></div></div>
+          <div class="level-labels">
+            <span>Lv.${current.level} ${current.name}</span>
+            <span>${profile.points}/${next.minPoints} pts</span>
+            <span>Lv.${next.level} ${next.name}</span>
+          </div>`;
+
+        // Stats
+        document.getElementById('totalReports').textContent = profile.totalComplaints;
+        document.getElementById('resolvedReports').textContent = profile.resolved;
+        document.getElementById('pendingReports').textContent = profile.pending;
+
+        // History
+        if (profile.pointsHistory && profile.pointsHistory.length > 0) {
+          document.getElementById('pointsHistory').innerHTML = profile.pointsHistory.map(h => {
+            const date = new Date(h.date).toLocaleDateString('en-IN', { day:'numeric', month:'short' });
+            const isPositive = h.points > 0;
+            return `
+              <div class="history-item">
+                <div>
+                  <div class="history-action">${h.action}</div>
+                  <div class="history-date">${date}</div>
+                </div>
+                <div class="history-points ${isPositive ? 'positive' : 'negative'}">${isPositive ? '+' : ''}${h.points} pts</div>
+              </div>`;
+          }).join('');
+        }
+      } catch (err) {
+        console.error(err);
+      }
+    }
+
+    loadProfile();
+  </script>
+</body>
+</html>

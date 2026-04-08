@@ -1,0 +1,178 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" /><meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Live Map — Civic Connect Admin</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet" />
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+<link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.5.3/dist/MarkerCluster.css" />
+<link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.5.3/dist/MarkerCluster.Default.css" />
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  :root { --purple: #5b21b6; --bg: #f5f3ff; --white: #fff; --text: #1e293b; --muted: #64748b; --border: #e2e8f0; }
+  body { font-family: 'Inter', sans-serif; background: var(--bg); min-height: 100vh; display: flex; flex-direction: column; }
+  nav { background: var(--purple); color: white; padding: 0.9rem 2rem; display: flex; align-items: center; justify-content: space-between; position: sticky; top: 0; z-index: 9999; }
+  .nav-brand { display: flex; align-items: center; gap: 0.6rem; font-size: 1.1rem; font-weight: 800; text-decoration: none; color: white; }
+  .nav-links a { color: rgba(255,255,255,0.85); text-decoration: none; font-size: 0.88rem; font-weight: 500; margin-left: 1rem; }
+  .nav-links a.active, .nav-links a:hover { color: white; }
+  .map-wrapper { display: flex; flex: 1; height: calc(100vh - 56px); }
+  #map { flex: 1; z-index: 1; }
+  .sidebar { width: 360px; background: var(--white); border-left: 1px solid var(--border); overflow-y: auto; padding: 1.5rem; display: flex; flex-direction: column; gap: 1rem; }
+  .sidebar-title { font-size: 1rem; font-weight: 800; color: var(--text); }
+  .legend { display: flex; flex-direction: column; gap: 0.5rem; }
+  .legend-item { display: flex; align-items: center; gap: 0.6rem; font-size: 0.85rem; color: var(--text); }
+  .legend-dot { width: 14px; height: 14px; border-radius: 50%; flex-shrink: 0; border: 2px solid rgba(0,0,0,0.2); }
+  .complaint-panel { background: #f8fafc; border-radius: 12px; padding: 1.25rem; border: 1px solid var(--border); display: none; }
+  .complaint-panel.show { display: block; animation: fadeIn 0.25s ease; }
+  @keyframes fadeIn { from { opacity:0;transform:translateY(-8px); } to { opacity:1;transform:translateY(0); } }
+  .panel-id { font-size: 0.75rem; font-weight: 700; text-transform: uppercase; color: var(--muted); margin-bottom: 0.3rem; }
+  .panel-title { font-size: 1.05rem; font-weight: 800; color: var(--text); margin-bottom: 0.5rem; }
+  .panel-desc { font-size: 0.85rem; color: var(--muted); margin-bottom: 0.75rem; line-height: 1.5; }
+  .badge { display: inline-flex; padding: 0.25rem 0.65rem; border-radius: 999px; font-size: 0.73rem; font-weight: 700; margin-right: 0.4rem; }
+  .badge-pending { background: #f1f5f9; color: var(--muted); }
+  .badge-in_progress { background: #fef9c3; color: #854d0e; }
+  .badge-resolved { background: #d1fae5; color: #064e3b; }
+  .badge-critical { background: #fee2e2; color: #991b1b; }
+  .badge-high { background: #fef3c7; color: #92400e; }
+  .badge-medium { background: #fff7ed; color: #9a3412; }
+  .badge-low { background: #f0fdf4; color: #166534; }
+  .panel-btn { display: block; background: var(--purple); color: white; border: none; border-radius: 10px; padding: 0.6rem 1rem; font-size: 0.85rem; font-weight: 700; cursor: pointer; text-decoration: none; text-align: center; width: 100%; margin-top: 0.75rem; }
+  .filter-btns { display: flex; gap: 0.5rem; flex-wrap: wrap; }
+  .filter-tag { padding: 0.35rem 0.85rem; border-radius: 999px; border: 2px solid var(--border); font-size: 0.8rem; font-weight: 700; cursor: pointer; background: var(--white); color: var(--text); transition: all 0.2s; }
+  .filter-tag.active { background: var(--purple); color: white; border-color: var(--purple); }
+  .stats-mini { display: grid; grid-template-columns: repeat(3, 1fr); gap: 0.5rem; }
+  .stat-mini { background: #f8fafc; border-radius: 8px; padding: 0.6rem; text-align: center; border: 1px solid var(--border); }
+  .stat-mini-val { font-size: 1.2rem; font-weight: 900; color: var(--purple); }
+  .stat-mini-lbl { font-size: 0.68rem; font-weight: 700; text-transform: uppercase; color: var(--muted); margin-top: 0.1rem; }
+</style>
+</head>
+<body>
+<nav>
+  <a href="/admin/dashboard.html" class="nav-brand">🏛️ Civic Connect <span style="font-size:0.7rem;background:rgba(255,255,255,0.2);padding:0.2rem 0.5rem;border-radius:6px;margin-left:0.4rem">ADMIN</span></a>
+  <div class="nav-links">
+    <a href="/admin/dashboard.html">Dashboard</a>
+    <a href="/admin/map.html" class="active">Map</a>
+    <a href="/admin/workers.html">Workers</a>
+    <a href="/admin/analytics.html">Analytics</a>
+  </div>
+</nav>
+
+<div class="map-wrapper">
+  <div id="map"></div>
+  <div class="sidebar">
+    <div class="sidebar-title">🗺️ Live Complaint Map</div>
+
+    <div class="stats-mini" id="mapStats">
+      <div class="stat-mini"><div class="stat-mini-val" id="mTotal">—</div><div class="stat-mini-lbl">Total</div></div>
+      <div class="stat-mini"><div class="stat-mini-val" style="color:#f59e0b" id="mInProgress">—</div><div class="stat-mini-lbl">In Progress</div></div>
+      <div class="stat-mini"><div class="stat-mini-val" style="color:#10b981" id="mResolved">—</div><div class="stat-mini-lbl">Resolved</div></div>
+    </div>
+
+    <div>
+      <div style="font-size:0.8rem;font-weight:700;text-transform:uppercase;color:var(--muted);margin-bottom:0.6rem">Filter</div>
+      <div class="filter-btns">
+        <button class="filter-tag active" data-status="" onclick="setFilter('')">All</button>
+        <button class="filter-tag" data-status="pending" onclick="setFilter('pending')">Pending</button>
+        <button class="filter-tag" data-status="in_progress" onclick="setFilter('in_progress')">In Progress</button>
+        <button class="filter-tag" data-status="resolved" onclick="setFilter('resolved')">Resolved</button>
+      </div>
+    </div>
+
+    <div class="legend">
+      <div style="font-size:0.8rem;font-weight:700;text-transform:uppercase;color:var(--muted);margin-bottom:0.3rem">Legend</div>
+      <div class="legend-item"><div class="legend-dot" style="background:#94a3b8"></div> Pending</div>
+      <div class="legend-item"><div class="legend-dot" style="background:#f59e0b"></div> In Progress</div>
+      <div class="legend-item"><div class="legend-dot" style="background:#10b981"></div> Resolved</div>
+      <div class="legend-item"><div class="legend-dot" style="background:#ef4444"></div> SLA Breach</div>
+    </div>
+
+    <div class="complaint-panel" id="complaintPanel">
+      <div class="panel-id" id="panelId">—</div>
+      <div class="panel-title" id="panelTitle">—</div>
+      <div><span class="badge" id="panelStatus">—</span><span class="badge" id="panelSeverity">—</span></div>
+      <div class="panel-desc" id="panelDesc">—</div>
+      <div style="font-size:0.78rem;color:var(--muted)">👍 <span id="panelUpvotes">0</span> upvotes · Stage <span id="panelStage">0</span>/7</div>
+      <a class="panel-btn" id="panelLink" href="#">View Full Details →</a>
+    </div>
+  </div>
+</div>
+
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script src="https://unpkg.com/leaflet.markercluster@1.5.3/dist/leaflet.markercluster.js"></script>
+<script>
+const token = localStorage.getItem('token');
+const role = localStorage.getItem('role');
+if (!token || role !== 'admin') window.location.href = '/admin/login.html';
+
+const STATUS_COLORS = { pending: '#94a3b8', in_progress: '#f59e0b', resolved: '#10b981' };
+let allComplaints = [], currentFilter = '', markerCluster, map;
+
+window.onload = async () => {
+  map = L.map('map').setView([12.9716, 77.5946], 12);
+  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+    attribution: '© OpenStreetMap'
+  }).addTo(map);
+  markerCluster = L.markerClusterGroup();
+  map.addLayer(markerCluster);
+  load();
+};
+
+async function load() {
+  const res = await fetch('/complaints', { headers: { Authorization: 'Bearer ' + token } });
+  allComplaints = await res.json().catch(() => []);
+
+  const now = new Date();
+  document.getElementById('mTotal').textContent = allComplaints.length;
+  document.getElementById('mInProgress').textContent = allComplaints.filter(c => c.status === 'in_progress').length;
+  document.getElementById('mResolved').textContent = allComplaints.filter(c => c.status === 'resolved').length;
+  renderMarkers();
+}
+
+function setFilter(status) {
+  currentFilter = status;
+  document.querySelectorAll('.filter-tag').forEach(t => {
+    t.classList.toggle('active', t.dataset.status === status);
+  });
+  renderMarkers();
+}
+
+function renderMarkers() {
+  markerCluster.clearLayers();
+  const filtered = currentFilter ? allComplaints.filter(c => c.status === currentFilter) : allComplaints;
+  const now = new Date();
+
+  filtered.filter(c => c.latitude && c.longitude).forEach(c => {
+    const sla = c.sla_deadline ? new Date(c.sla_deadline) : null;
+    const breached = sla && sla < now && c.status !== 'resolved';
+    const color = breached ? '#ef4444' : STATUS_COLORS[c.status] || '#94a3b8';
+
+    const icon = L.divIcon({
+      html: `<div style="width:16px;height:16px;border-radius:50%;background:${color};border:2px solid white;box-shadow:0 2px 6px rgba(0,0,0,0.3)"></div>`,
+      className: '',
+      iconSize: [16, 16],
+      iconAnchor: [8, 8]
+    });
+
+    const marker = L.marker([c.latitude, c.longitude], { icon });
+    marker.on('click', () => showPanel(c));
+    markerCluster.addLayer(marker);
+  });
+}
+
+function showPanel(c) {
+  document.getElementById('panelId').textContent = `#${c.id} · ${new Date(c.created_at).toLocaleDateString()}`;
+  document.getElementById('panelTitle').textContent = c.category;
+  document.getElementById('panelStatus').className = `badge badge-${c.status}`;
+  document.getElementById('panelStatus').textContent = c.status === 'in_progress' ? '🔄 In Progress' : c.status === 'resolved' ? '✅ Resolved' : '⏳ Pending';
+  document.getElementById('panelSeverity').className = `badge badge-${c.severity?.toLowerCase()}`;
+  document.getElementById('panelSeverity').textContent = c.severity;
+  document.getElementById('panelDesc').textContent = c.description.substring(0, 100) + (c.description.length > 100 ? '...' : '');
+  document.getElementById('panelUpvotes').textContent = c.upvotes;
+  document.getElementById('panelStage').textContent = c.current_stage;
+  document.getElementById('panelLink').href = `/admin/complaint.html?id=${c.id}`;
+  document.getElementById('complaintPanel').classList.add('show');
+  map.setView([c.latitude, c.longitude], 15);
+}
+</script>
+</body>
+</html>

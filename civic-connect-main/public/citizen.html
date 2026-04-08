@@ -1,0 +1,354 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Citizen Dashboard — Civic Connect</title>
+  <link rel="stylesheet" href="/css/style.css">
+</head>
+<body>
+  <!-- Navbar -->
+  <nav class="navbar">
+    <div class="navbar-brand">
+      <div class="icon">🏛️</div>
+      <span>Civic Connect</span>
+    </div>
+    <div class="navbar-right">
+      <a href="/track" class="btn btn-ghost btn-sm">🔄 Track</a>
+      <a href="/profile" class="btn btn-ghost btn-sm">👤 Profile</a>
+      <a href="/rewards" class="btn btn-ghost btn-sm">🎁 Rewards</a>
+      <div class="navbar-user">
+        <div class="avatar" id="userAvatar">C</div>
+        <span id="userName">Citizen</span>
+      </div>
+      <button class="btn btn-ghost btn-sm" onclick="logout()">Logout</button>
+    </div>
+  </nav>
+
+  <div class="dashboard">
+    <!-- Header -->
+    <div class="dashboard-header">
+      <div>
+        <h1>📋 My Complaints</h1>
+        <p style="color:var(--text-secondary);font-size:0.9rem" id="subtitle">Track your reported civic issues</p>
+      </div>
+      <button class="btn btn-primary btn-lg" onclick="openNewComplaint()">
+        ➕ Report New Issue
+      </button>
+    </div>
+
+    <!-- Stats -->
+    <div class="stats-grid" id="statsGrid">
+      <div class="stat-card blue">
+        <div class="stat-label">Total Reports</div>
+        <div class="stat-value" id="statTotal">0</div>
+      </div>
+      <div class="stat-card yellow">
+        <div class="stat-label">Pending</div>
+        <div class="stat-value" id="statPending">0</div>
+      </div>
+      <div class="stat-card purple">
+        <div class="stat-label">In Progress</div>
+        <div class="stat-value" id="statProgress">0</div>
+      </div>
+      <div class="stat-card green">
+        <div class="stat-label">Resolved</div>
+        <div class="stat-value" id="statResolved">0</div>
+      </div>
+      <div class="stat-card red">
+        <div class="stat-label">🔥 Streak</div>
+        <div class="stat-value" id="statStreak">0</div>
+      </div>
+      <div class="stat-card" style="background:linear-gradient(135deg,var(--primary),var(--accent));color:white">
+        <div class="stat-label" style="color:rgba(255,255,255,0.8)">⭐ Points</div>
+        <div class="stat-value" id="statPoints">0</div>
+      </div>
+    </div>
+
+    <!-- Filter -->
+    <div class="filters-bar">
+      <select id="filterStatus" onchange="loadComplaints()">
+        <option value="">All Status</option>
+        <option value="Pending">Pending</option>
+        <option value="In Progress">In Progress</option>
+        <option value="Resolved">Resolved</option>
+      </select>
+      <select id="filterCategory" onchange="loadComplaints()">
+        <option value="">All Categories</option>
+        <option>Pothole</option><option>Water Leakage</option><option>Street Light</option>
+        <option>Garbage</option><option>Road Damage</option><option>Electricity</option>
+        <option>Drainage</option><option>Other</option>
+      </select>
+    </div>
+
+    <!-- Complaints List -->
+    <div class="complaints-grid" id="complaintsGrid">
+      <div class="empty-state">
+        <div class="empty-icon">📭</div>
+        <h3>No complaints yet</h3>
+        <p>Click "Report New Issue" to submit your first complaint</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- New Complaint Modal -->
+  <div class="modal-overlay" id="newComplaintModal">
+    <div class="modal">
+      <div class="modal-header">
+        <h3>📝 Report New Issue</h3>
+        <button class="modal-close" onclick="closeModal()">&times;</button>
+      </div>
+      <form id="complaintForm" onsubmit="submitComplaint(event)">
+        <div class="modal-body">
+          <div class="form-group">
+            <label for="cTitle">Issue Title *</label>
+            <input type="text" id="cTitle" class="form-control" placeholder="e.g. Large pothole on MG Road" required>
+          </div>
+          <div class="form-group">
+            <label for="cCategory">Category *</label>
+            <select id="cCategory" class="form-control" required>
+              <option value="">Select category</option>
+              <option>Pothole</option><option>Water Leakage</option><option>Street Light</option>
+              <option>Garbage</option><option>Road Damage</option><option>Electricity</option>
+              <option>Drainage</option><option>Other</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label for="cLocation">Location *</label>
+            <input type="text" id="cLocation" class="form-control" placeholder="e.g. MG Road, Near City Center" required>
+          </div>
+          <div class="form-group">
+            <label for="cDesc">Description *</label>
+            <textarea id="cDesc" class="form-control" placeholder="Describe the issue in detail..." required></textarea>
+          </div>
+          <div class="form-group">
+            <label>Upload Photo *</label>
+            <div class="file-upload" onclick="document.getElementById('cImage').click()">
+              <div class="upload-icon">📷</div>
+              <p>Click to upload an image (JPG, PNG, WEBP)</p>
+              <input type="file" id="cImage" accept="image/*" onchange="previewImage(event)" required>
+            </div>
+            <img class="preview-img" id="imagePreview" style="margin-bottom: 10px;">
+            <button type="button" id="aiBtn" class="btn btn-warning btn-block" style="display:none; margin-top:10px" onclick="analyzeImage()">
+              ✨ Analyze Image with AI & Auto-Fill
+            </button>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-outline" onclick="closeModal()">Cancel</button>
+          <button type="submit" class="btn btn-primary" id="submitBtn">Submit Report</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Toast container -->
+  <div class="toast-container" id="toastContainer"></div>
+
+  <script>
+    const API = '';
+    const token = localStorage.getItem('token');
+    const user = JSON.parse(localStorage.getItem('user') || 'null');
+
+    if (!token || !user || user.role !== 'citizen') {
+      localStorage.clear();
+      window.location.href = '/';
+    }
+
+    // Set user info
+    document.getElementById('userName').textContent = user.name;
+    document.getElementById('userAvatar').textContent = user.name.charAt(0).toUpperCase();
+
+    function logout() {
+      localStorage.clear();
+      window.location.href = '/';
+    }
+
+    function showToast(message, type = 'info') {
+      const container = document.getElementById('toastContainer');
+      const toast = document.createElement('div');
+      toast.className = `toast toast-${type}`;
+      toast.textContent = message;
+      container.appendChild(toast);
+      setTimeout(() => toast.remove(), 3000);
+    }
+
+    // Load complaints
+    async function loadComplaints() {
+      try {
+        const res = await fetch(API + '/api/complaints/my', {
+          headers: { 'Authorization': 'Bearer ' + token }
+        });
+        if (!res.ok) throw new Error('Failed to load');
+        let complaints = await res.json();
+
+        // Filters
+        const statusFilter = document.getElementById('filterStatus').value;
+        const catFilter = document.getElementById('filterCategory').value;
+        if (statusFilter) complaints = complaints.filter(c => c.status === statusFilter);
+        if (catFilter) complaints = complaints.filter(c => c.category === catFilter);
+
+        // Stats
+        const all = await fetch(API + '/api/complaints/my', { headers: { 'Authorization': 'Bearer ' + token } }).then(r => r.json());
+        document.getElementById('statTotal').textContent = all.length;
+        document.getElementById('statPending').textContent = all.filter(c => c.status === 'Pending').length;
+        document.getElementById('statProgress').textContent = all.filter(c => c.status === 'In Progress').length;
+        document.getElementById('statResolved').textContent = all.filter(c => c.status === 'Resolved').length;
+
+        renderComplaints(complaints);
+      } catch (err) {
+        showToast('Failed to load complaints', 'error');
+      }
+    }
+
+    function renderComplaints(complaints) {
+      const grid = document.getElementById('complaintsGrid');
+      if (complaints.length === 0) {
+        grid.innerHTML = `
+          <div class="empty-state" style="grid-column:1/-1">
+            <div class="empty-icon">📭</div>
+            <h3>No complaints found</h3>
+            <p>Try changing your filters or report a new issue</p>
+          </div>`;
+        return;
+      }
+
+      grid.innerHTML = complaints.map(c => {
+        const statusClass = c.status === 'Pending' ? 'badge-pending' : c.status === 'In Progress' ? 'badge-progress' : 'badge-resolved';
+        const priorityClass = c.priority === 'High' ? 'badge-high' : c.priority === 'Medium' ? 'badge-medium' : 'badge-low';
+        const date = new Date(c.createdAt).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' });
+
+        return `
+          <div class="complaint-card">
+            ${c.image ? `<img src="${c.image}" class="card-img" alt="${c.title}" onerror="this.style.display='none'">` : `<div class="card-img" style="display:flex;align-items:center;justify-content:center;font-size:3rem;background:var(--bg)">📷</div>`}
+            <div class="card-content">
+              <div class="card-title">${c.title}</div>
+              <div class="card-desc">${c.description}</div>
+              <div class="card-meta">
+                <span class="badge ${statusClass}">${c.status}</span>
+                <span class="badge ${priorityClass}">${c.priority} Priority</span>
+                <span class="badge" style="background:#F1F5F9;color:var(--text-secondary)">${c.category}</span>
+                <span class="badge" style="background:#EDE9FE;color:#5B21B6">Stage ${c.stage || 0}/6</span>
+              </div>
+              <div class="card-footer">
+                <span class="location">📍 ${c.location}</span>
+                <a href="/track?id=${c._id}" class="btn btn-primary btn-sm">🔄 Track</a>
+              </div>
+            </div>
+          </div>`;
+      }).join('');
+    }
+
+    function openNewComplaint() {
+      document.getElementById('newComplaintModal').classList.add('active');
+    }
+
+    function closeModal() {
+      document.getElementById('newComplaintModal').classList.remove('active');
+      document.getElementById('complaintForm').reset();
+      document.getElementById('imagePreview').style.display = 'none';
+      document.getElementById('aiBtn').style.display = 'none';
+    }
+
+    function previewImage(e) {
+      const file = e.target.files[0];
+      if (file) {
+        const reader = new FileReader();
+        reader.onload = (ev) => {
+          const img = document.getElementById('imagePreview');
+          img.src = ev.target.result;
+          img.style.display = 'block';
+          document.getElementById('aiBtn').style.display = 'block';
+        };
+        reader.readAsDataURL(file);
+      }
+    }
+
+    async function analyzeImage() {
+      const file = document.getElementById('cImage').files[0];
+      if (!file) return;
+
+      const btn = document.getElementById('aiBtn');
+      btn.innerHTML = '<span class="spinner"></span> Analyzing with AI...';
+      btn.disabled = true;
+
+      try {
+        const formData = new FormData();
+        formData.append('image', file);
+
+        const res = await fetch(API + '/api/analyze-image', {
+          method: 'POST',
+          headers: { 'Authorization': 'Bearer ' + token },
+          body: formData
+        });
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.error);
+
+        document.getElementById('cTitle').value = data.title;
+        document.getElementById('cCategory').value = data.category;
+        document.getElementById('cDesc').value = data.description;
+        
+        showToast('AI successfully analyzed the image!', 'success');
+      } catch (err) {
+        showToast('AI Analysis failed: ' + err.message, 'error');
+      } finally {
+        btn.innerHTML = '✨ Analyze Image with AI & Auto-Fill';
+        btn.disabled = false;
+      }
+    }
+
+    async function submitComplaint(e) {
+      e.preventDefault();
+      const btn = document.getElementById('submitBtn');
+      btn.innerHTML = '<span class="spinner"></span> Submitting...';
+      btn.disabled = true;
+
+      try {
+        const formData = new FormData();
+        formData.append('title', document.getElementById('cTitle').value);
+        formData.append('category', document.getElementById('cCategory').value);
+        formData.append('location', document.getElementById('cLocation').value);
+        formData.append('description', document.getElementById('cDesc').value);
+
+        const imageFile = document.getElementById('cImage').files[0];
+        if (imageFile) formData.append('image', imageFile);
+
+        const res = await fetch(API + '/api/complaints', {
+          method: 'POST',
+          headers: { 'Authorization': 'Bearer ' + token },
+          body: formData
+        });
+        const data = await res.json();
+
+        if (!res.ok) throw new Error(data.error || 'Submission failed');
+
+        let msg = 'Complaint submitted! +10 points';
+        if (data.pointsEarned > 10) msg += ` (+${data.pointsEarned - 10} streak bonus!)`;
+        if (data.streak > 1) msg += ` 🔥 ${data.streak}-day streak!`;
+        showToast(msg, 'success');
+        closeModal();
+        loadProfile();
+        loadComplaints();
+      } catch (err) {
+        showToast(err.message, 'error');
+        btn.innerHTML = 'Submit Report';
+        btn.disabled = false;
+      }
+    }
+
+    async function loadProfile() {
+      try {
+        const res = await fetch(API + '/api/profile', { headers: { 'Authorization': 'Bearer ' + token } });
+        if (!res.ok) return;
+        const profile = await res.json();
+        document.getElementById('statStreak').textContent = profile.streak || 0;
+        document.getElementById('statPoints').textContent = profile.points || 0;
+      } catch (err) {}
+    }
+
+    // Initial load
+    loadComplaints();
+    loadProfile();
+  </script>
+</body>
+</html>

@@ -1,0 +1,466 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Admin Dashboard — Civic Connect</title>
+  <link rel="stylesheet" href="/css/style.css">
+  <style>
+    .admin-nav { background: linear-gradient(135deg, #7C3AED, #4F46E5); }
+    .view-toggle { display: flex; gap: 0; background: var(--bg); border-radius: var(--radius); padding: 4px; }
+    .view-toggle button { padding: 8px 16px; border: none; background: transparent; border-radius: 8px; font-weight: 600; font-size: 0.8rem; cursor: pointer; transition: var(--transition); }
+    .view-toggle button.active { background: white; color: var(--primary); box-shadow: 0 2px 8px rgba(0,0,0,0.08); }
+
+    .detail-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; }
+    .detail-grid .full { grid-column: 1 / -1; }
+    .detail-label { font-size: 0.75rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; color: var(--text-secondary); margin-bottom: 4px; }
+    .detail-value { font-size: 0.95rem; font-weight: 500; }
+
+    .admin-actions { display: flex; gap: 10px; flex-wrap: wrap; margin-top: 1rem; }
+
+    .complaint-img-large {
+      width: 100%;
+      max-height: 300px;
+      object-fit: cover;
+      border-radius: var(--radius);
+      margin-bottom: 1rem;
+    }
+
+    @media (max-width: 768px) {
+      .detail-grid { grid-template-columns: 1fr; }
+    }
+  </style>
+</head>
+<body>
+  <!-- Navbar -->
+  <nav class="navbar admin-nav">
+    <div class="navbar-brand">
+      <div class="icon">🔧</div>
+      <span>Civic Connect</span>
+      <span class="badge" style="background:rgba(255,255,255,0.2);color:white;font-size:0.7rem">ADMIN</span>
+    </div>
+    <div class="navbar-right">
+      <div class="navbar-user">
+        <div class="avatar" id="userAvatar">A</div>
+        <span id="userName">Admin</span>
+      </div>
+      <button class="btn btn-ghost btn-sm" onclick="logout()">Logout</button>
+    </div>
+  </nav>
+
+  <div class="dashboard">
+    <!-- Header -->
+    <div class="dashboard-header">
+      <div>
+        <h1>🔧 Admin Dashboard</h1>
+        <p style="color:var(--text-secondary);font-size:0.9rem">Manage and resolve civic complaints</p>
+      </div>
+      <div class="view-toggle">
+        <button class="active" onclick="setView('cards', this)">📋 Cards</button>
+        <button onclick="setView('table', this)">📊 Table</button>
+      </div>
+    </div>
+
+    <!-- Stats -->
+    <div class="stats-grid" id="statsGrid">
+      <div class="stat-card blue">
+        <div class="stat-label">Total Complaints</div>
+        <div class="stat-value" id="statTotal">0</div>
+      </div>
+      <div class="stat-card yellow">
+        <div class="stat-label">Pending</div>
+        <div class="stat-value" id="statPending">0</div>
+      </div>
+      <div class="stat-card purple">
+        <div class="stat-label">In Progress</div>
+        <div class="stat-value" id="statProgress">0</div>
+      </div>
+      <div class="stat-card green">
+        <div class="stat-label">Resolved</div>
+        <div class="stat-value" id="statResolved">0</div>
+      </div>
+      <div class="stat-card red">
+        <div class="stat-label">High Priority</div>
+        <div class="stat-value" id="statHigh">0</div>
+      </div>
+    </div>
+
+    <!-- Filters -->
+    <div class="filters-bar">
+      <select id="filterStatus" onchange="loadComplaints()">
+        <option value="">All Status</option>
+        <option value="Pending">Pending</option>
+        <option value="In Progress">In Progress</option>
+        <option value="Resolved">Resolved</option>
+      </select>
+      <select id="filterCategory" onchange="loadComplaints()">
+        <option value="">All Categories</option>
+        <option>Pothole</option><option>Water Leakage</option><option>Street Light</option>
+        <option>Garbage</option><option>Road Damage</option><option>Electricity</option>
+        <option>Drainage</option><option>Other</option>
+      </select>
+      <select id="filterPriority" onchange="loadComplaints()">
+        <option value="">All Priority</option>
+        <option value="High">High</option>
+        <option value="Medium">Medium</option>
+        <option value="Low">Low</option>
+      </select>
+      <select id="filterDept" onchange="loadComplaints()">
+        <option value="">All Departments</option>
+        <option>Road</option><option>Water</option><option>Electricity</option>
+        <option>Sanitation</option><option>General</option>
+      </select>
+      <input type="text" id="filterLocation" placeholder="🔍 Search location..." oninput="loadComplaints()">
+      <select id="filterSort" onchange="loadComplaints()">
+        <option value="">Sort: Newest</option>
+        <option value="oldest">Sort: Oldest</option>
+        <option value="priority">Sort: Priority</option>
+        <option value="status">Sort: Status</option>
+      </select>
+    </div>
+
+    <!-- Complaints -->
+    <div id="cardsView">
+      <div class="complaints-grid" id="complaintsGrid"></div>
+    </div>
+
+    <div id="tableView" style="display:none">
+      <div class="table-container">
+        <table class="data-table">
+          <thead>
+            <tr>
+              <th>Title</th>
+              <th>Category</th>
+              <th>Location</th>
+              <th>Priority</th>
+              <th>Status</th>
+              <th>Department</th>
+              <th>Reported By</th>
+              <th>Date</th>
+              <th>Actions</th>
+            </tr>
+          </thead>
+          <tbody id="complaintsTable"></tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <!-- Detail Modal -->
+  <div class="modal-overlay" id="detailModal">
+    <div class="modal" style="max-width:700px">
+      <div class="modal-header">
+        <h3 id="detailTitle">Complaint Details</h3>
+        <button class="modal-close" onclick="closeDetailModal()">&times;</button>
+      </div>
+      <div class="modal-body" id="detailBody"></div>
+    </div>
+  </div>
+
+  <!-- Toast -->
+  <div class="toast-container" id="toastContainer"></div>
+
+  <script>
+    const API = '';
+    const token = localStorage.getItem('token');
+    const user = JSON.parse(localStorage.getItem('user') || 'null');
+
+    if (!token || !user || user.role !== 'admin') {
+      localStorage.clear();
+      window.location.href = '/';
+    }
+
+    document.getElementById('userName').textContent = user.name;
+    document.getElementById('userAvatar').textContent = user.name.charAt(0).toUpperCase();
+
+    let currentView = 'cards';
+    let allComplaints = [];
+
+    function logout() { localStorage.clear(); window.location.href = '/'; }
+
+    function showToast(message, type = 'info') {
+      const container = document.getElementById('toastContainer');
+      const toast = document.createElement('div');
+      toast.className = `toast toast-${type}`;
+      toast.textContent = message;
+      container.appendChild(toast);
+      setTimeout(() => toast.remove(), 3000);
+    }
+
+    function setView(view, btn) {
+      currentView = view;
+      document.querySelectorAll('.view-toggle button').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      document.getElementById('cardsView').style.display = view === 'cards' ? 'block' : 'none';
+      document.getElementById('tableView').style.display = view === 'table' ? 'block' : 'none';
+    }
+
+    async function loadComplaints() {
+      try {
+        const params = new URLSearchParams();
+        const status = document.getElementById('filterStatus').value;
+        const category = document.getElementById('filterCategory').value;
+        const priority = document.getElementById('filterPriority').value;
+        const department = document.getElementById('filterDept').value;
+        const location = document.getElementById('filterLocation').value;
+        const sort = document.getElementById('filterSort').value;
+
+        if (status) params.set('status', status);
+        if (category) params.set('category', category);
+        if (priority) params.set('priority', priority);
+        if (department) params.set('department', department);
+        if (location) params.set('location', location);
+        if (sort) params.set('sort', sort);
+
+        const res = await fetch(API + '/api/complaints/all?' + params.toString(), {
+          headers: { 'Authorization': 'Bearer ' + token }
+        });
+        if (!res.ok) throw new Error('Failed to load');
+        allComplaints = await res.json();
+
+        renderCards(allComplaints);
+        renderTable(allComplaints);
+        loadStats();
+      } catch (err) {
+        showToast('Failed to load complaints', 'error');
+      }
+    }
+
+    async function loadStats() {
+      try {
+        const res = await fetch(API + '/api/complaints/stats/summary', {
+          headers: { 'Authorization': 'Bearer ' + token }
+        });
+        if (!res.ok) return;
+        const stats = await res.json();
+        document.getElementById('statTotal').textContent = stats.total;
+        document.getElementById('statPending').textContent = stats.pending;
+        document.getElementById('statProgress').textContent = stats.inProgress;
+        document.getElementById('statResolved').textContent = stats.resolved;
+        document.getElementById('statHigh').textContent = stats.highPriority;
+      } catch (err) {}
+    }
+
+    function renderCards(complaints) {
+      const grid = document.getElementById('complaintsGrid');
+      if (complaints.length === 0) {
+        grid.innerHTML = `<div class="empty-state" style="grid-column:1/-1"><div class="empty-icon">📭</div><h3>No complaints found</h3></div>`;
+        return;
+      }
+
+      grid.innerHTML = complaints.map(c => {
+        const statusClass = c.status === 'Pending' ? 'badge-pending' : c.status === 'In Progress' ? 'badge-progress' : 'badge-resolved';
+        const priorityClass = c.priority === 'High' ? 'badge-high' : c.priority === 'Medium' ? 'badge-medium' : 'badge-low';
+        const date = new Date(c.createdAt).toLocaleDateString('en-IN', { day: 'numeric', month: 'short' });
+        const isHigh = c.priority === 'High';
+
+        return `
+          <div class="complaint-card" style="${isHigh ? 'border-left: 4px solid var(--danger);' : ''}">
+            ${c.image ? `<img src="${c.image}" class="card-img" alt="${c.title}" onerror="this.style.display='none'">` : ''}
+            <div class="card-content">
+              <div class="card-title">${isHigh ? '🔴 ' : ''}${c.title}</div>
+              <div class="card-desc">${c.description}</div>
+              <div class="card-meta">
+                <span class="badge ${statusClass}">${c.status}</span>
+                <span class="badge ${priorityClass}">${c.priority}</span>
+                <span class="badge" style="background:#F1F5F9;color:var(--text-secondary)">${c.category}</span>
+                <span class="badge" style="background:#EDE9FE;color:#5B21B6">${c.department}</span>
+                <span class="badge" style="background:#F0F9FF;color:#0369A1">Stage ${c.stage || 0}/6</span>
+              </div>
+              <div class="card-footer">
+                <span class="location">📍 ${c.location}</span>
+                <button class="btn btn-primary btn-sm" onclick="openDetail('${c._id}')">Manage</button>
+              </div>
+            </div>
+          </div>`;
+      }).join('');
+    }
+
+    function renderTable(complaints) {
+      const tbody = document.getElementById('complaintsTable');
+      if (complaints.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="9" style="text-align:center;padding:2rem;color:var(--text-secondary)">No complaints found</td></tr>';
+        return;
+      }
+
+      tbody.innerHTML = complaints.map(c => {
+        const statusClass = c.status === 'Pending' ? 'badge-pending' : c.status === 'In Progress' ? 'badge-progress' : 'badge-resolved';
+        const priorityClass = c.priority === 'High' ? 'priority-high' : c.priority === 'Medium' ? 'priority-medium' : 'priority-low';
+        const date = new Date(c.createdAt).toLocaleDateString('en-IN', { day: 'numeric', month: 'short' });
+
+        return `
+          <tr class="${priorityClass}">
+            <td><strong>${c.title}</strong></td>
+            <td>${c.category}</td>
+            <td>${c.location}</td>
+            <td><span class="badge badge-${c.priority.toLowerCase()}">${c.priority}</span></td>
+            <td><span class="badge ${statusClass}">${c.status}</span></td>
+            <td>${c.department}</td>
+            <td>${c.citizenName || 'N/A'}</td>
+            <td>${date}</td>
+            <td><button class="btn btn-primary btn-sm" onclick="openDetail('${c._id}')">View</button></td>
+          </tr>`;
+      }).join('');
+    }
+
+    async function openDetail(id) {
+      const c = allComplaints.find(x => x._id === id);
+      if (!c) return;
+
+      const date = new Date(c.createdAt).toLocaleString('en-IN');
+      const resolvedDate = c.resolvedAt ? new Date(c.resolvedAt).toLocaleString('en-IN') : 'N/A';
+      const statusClass = c.status === 'Pending' ? 'badge-pending' : c.status === 'In Progress' ? 'badge-progress' : 'badge-resolved';
+      const priorityClass = c.priority === 'High' ? 'badge-high' : c.priority === 'Medium' ? 'badge-medium' : 'badge-low';
+
+      let nextBtn = '';
+      const stage = c.stage || 0;
+      const stageNames = ['Submitted','Under Review','Assigned','In Progress','Inspection','Verification','Resolved'];
+      if (stage < 6) {
+        nextBtn = `<button class="btn btn-warning" onclick="advanceStage('${c._id}')">⏭️ Advance to: ${stageNames[stage + 1]}</button>`;
+      }
+
+      document.getElementById('detailTitle').textContent = c.title;
+      document.getElementById('detailBody').innerHTML = `
+        ${c.image ? `<img src="${c.image}" class="complaint-img-large" alt="${c.title}" onerror="this.style.display='none'">` : ''}
+        <div class="detail-grid">
+          <div>
+            <div class="detail-label">Status</div>
+            <div class="detail-value"><span class="badge ${statusClass}">${c.status}</span></div>
+          </div>
+          <div>
+            <div class="detail-label">Priority</div>
+            <div class="detail-value"><span class="badge ${priorityClass}">${c.priority}</span></div>
+          </div>
+          <div>
+            <div class="detail-label">Category</div>
+            <div class="detail-value">${c.category}</div>
+          </div>
+          <div>
+            <div class="detail-label">Department</div>
+            <div class="detail-value">${c.department}</div>
+          </div>
+          <div>
+            <div class="detail-label">Location</div>
+            <div class="detail-value">📍 ${c.location}</div>
+          </div>
+          <div>
+            <div class="detail-label">Reported By</div>
+            <div class="detail-value">${c.citizenName || 'N/A'} (${c.citizenEmail || ''})</div>
+          </div>
+          <div>
+            <div class="detail-label">Reported On</div>
+            <div class="detail-value">${date}</div>
+          </div>
+          <div>
+            <div class="detail-label">Resolved On</div>
+            <div class="detail-value">${resolvedDate}</div>
+          </div>
+          <div>
+            <div class="detail-label">Stage</div>
+            <div class="detail-value"><span class="badge" style="background:#F0F9FF;color:#0369A1">${stageNames[stage]} (${stage}/6)</span></div>
+          </div>
+          <div class="full">
+            <div class="detail-label">Description</div>
+            <div class="detail-value">${c.description}</div>
+          </div>
+        </div>
+
+        <hr style="margin:1.5rem 0;border:none;border-top:1px solid var(--border)">
+
+        <div class="form-group">
+          <label>Assign Department</label>
+          <select id="editDept" class="form-control" onchange="updateDepartment('${c._id}')">
+            <option ${c.department === 'Road' ? 'selected' : ''}>Road</option>
+            <option ${c.department === 'Water' ? 'selected' : ''}>Water</option>
+            <option ${c.department === 'Electricity' ? 'selected' : ''}>Electricity</option>
+            <option ${c.department === 'Sanitation' ? 'selected' : ''}>Sanitation</option>
+            <option ${c.department === 'General' ? 'selected' : ''}>General</option>
+          </select>
+        </div>
+
+        <div class="form-group">
+          <label>Override Priority</label>
+          <select id="editPriority" class="form-control" onchange="updatePriority('${c._id}')">
+            <option ${c.priority === 'High' ? 'selected' : ''}>High</option>
+            <option ${c.priority === 'Medium' ? 'selected' : ''}>Medium</option>
+            <option ${c.priority === 'Low' ? 'selected' : ''}>Low</option>
+          </select>
+        </div>
+
+        <div class="form-group">
+          <label>Admin Notes</label>
+          <textarea id="editNotes" class="form-control" placeholder="Add notes about this complaint...">${c.adminNotes || ''}</textarea>
+        </div>
+
+        <div class="admin-actions">
+          ${nextBtn}
+          <button class="btn btn-primary" onclick="saveNotes('${c._id}')">💾 Save Notes</button>
+        </div>
+      `;
+
+      document.getElementById('detailModal').classList.add('active');
+    }
+
+    function closeDetailModal() {
+      document.getElementById('detailModal').classList.remove('active');
+    }
+
+    async function advanceStage(id) {
+      try {
+        const res = await fetch(API + `/api/complaints/${id}/advance`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + token }
+        });
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.error);
+        showToast(`Advanced to stage: ${data.stage}/6`, 'success');
+        closeDetailModal();
+        loadComplaints();
+      } catch (err) {
+        showToast(err.message, 'error');
+      }
+    }
+
+    async function updateDepartment(id) {
+      const department = document.getElementById('editDept').value;
+      try {
+        await fetch(API + `/api/complaints/${id}`, {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + token },
+          body: JSON.stringify({ department })
+        });
+        showToast('Department updated', 'success');
+        loadComplaints();
+      } catch (err) { showToast('Update failed', 'error'); }
+    }
+
+    async function updatePriority(id) {
+      const priority = document.getElementById('editPriority').value;
+      try {
+        await fetch(API + `/api/complaints/${id}`, {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + token },
+          body: JSON.stringify({ priority })
+        });
+        showToast('Priority updated', 'success');
+        loadComplaints();
+      } catch (err) { showToast('Update failed', 'error'); }
+    }
+
+    async function saveNotes(id) {
+      const adminNotes = document.getElementById('editNotes').value;
+      try {
+        await fetch(API + `/api/complaints/${id}`, {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + token },
+          body: JSON.stringify({ adminNotes })
+        });
+        showToast('Notes saved', 'success');
+      } catch (err) { showToast('Save failed', 'error'); }
+    }
+
+    // Initial load
+    loadComplaints();
+  </script>
+</body>
+</html>

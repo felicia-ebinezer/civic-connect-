@@ -1,0 +1,165 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" /><meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>My Profile — Civic Connect</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet" />
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  :root { --blue: #1D4ED8; --bg: #EFF6FF; --white: #fff; --text: #1e293b; --muted: #64748b; --border: #e2e8f0; }
+  body { font-family: 'Inter', sans-serif; background: var(--bg); min-height: 100vh; }
+  nav { background: var(--blue); color: white; padding: 0.9rem 2rem; display: flex; align-items: center; justify-content: space-between; position: sticky; top: 0; z-index: 999; }
+  .nav-brand { display: flex; align-items: center; gap: 0.6rem; font-size: 1.1rem; font-weight: 800; text-decoration: none; color: white; }
+  .nav-links a { color: rgba(255,255,255,0.85); text-decoration: none; font-size: 0.88rem; font-weight: 500; margin-left: 1rem; }
+  .nav-links a.active, .nav-links a:hover { color: white; }
+  .main { max-width: 820px; margin: 2rem auto; padding: 0 1.5rem 4rem; }
+  /* LEVEL BANNER */
+  .level-banner { border-radius: 20px; padding: 2rem 2.5rem; color: white; margin-bottom: 1.5rem; display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 1.5rem; }
+  .bronze-banner { background: linear-gradient(135deg, #b45309, #d97706); }
+  .silver-banner { background: linear-gradient(135deg, #475569, #94a3b8); }
+  .gold-banner { background: linear-gradient(135deg, #d97706, #fbbf24); }
+  .diamond-banner { background: linear-gradient(135deg, #1D4ED8, #7c3aed); }
+  .level-left h2 { font-size: 1rem; opacity: 0.85; font-weight: 500; }
+  .level-name { font-size: 2.2rem; font-weight: 900; margin-bottom: 0.2rem; }
+  .level-pts { font-size: 1rem; opacity: 0.9; }
+  .level-icon { font-size: 4rem; }
+  .progress-section { margin-top: 1rem; width: 100%; }
+  .progress-label { display: flex; justify-content: space-between; font-size: 0.82rem; opacity: 0.85; margin-bottom: 0.4rem; }
+  .progress-bar { background: rgba(255,255,255,0.2); border-radius: 999px; height: 10px; overflow: hidden; }
+  .progress-fill { height: 100%; border-radius: 999px; background: white; transition: width 1s ease; }
+  /* STATS ROW */
+  .stats-row { display: grid; grid-template-columns: repeat(3, 1fr); gap: 1rem; margin-bottom: 1.5rem; }
+  .stat-card { background: var(--white); border-radius: 14px; padding: 1.25rem 1.5rem; border: 1px solid var(--border); text-align: center; }
+  .stat-value { font-size: 2rem; font-weight: 800; color: var(--blue); }
+  .stat-label { font-size: 0.78rem; font-weight: 600; color: var(--muted); text-transform: uppercase; margin-top: 0.25rem; }
+  /* STREAK */
+  .section { background: var(--white); border-radius: 16px; padding: 1.5rem; border: 1px solid var(--border); box-shadow: 0 2px 8px rgba(0,0,0,0.04); margin-bottom: 1.25rem; }
+  .section-title { font-size: 0.88rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; color: var(--text); margin-bottom: 1.25rem; }
+  .streak-display { display: flex; align-items: center; gap: 1.25rem; margin-bottom: 1.25rem; }
+  .streak-num { font-size: 3rem; font-weight: 900; color: var(--blue); line-height: 1; }
+  .streak-info h3 { font-size: 1.1rem; font-weight: 700; color: var(--text); }
+  .streak-info p { font-size: 0.85rem; color: var(--muted); margin-top: 0.2rem; }
+  .streak-milestones { display: flex; gap: 0.75rem; flex-wrap: wrap; }
+  .milestone { padding: 0.5rem 1rem; border-radius: 10px; border: 2px solid var(--border); font-size: 0.82rem; font-weight: 600; color: var(--muted); }
+  .milestone.achieved { border-color: #10b981; background: #d1fae5; color: #064e3b; }
+  /* POINT LOG */
+  .point-log { display: flex; flex-direction: column; gap: 0.75rem; }
+  .log-entry { display: flex; align-items: center; justify-content: space-between; padding: 0.75rem 1rem; border-radius: 10px; background: #f8fafc; border: 1px solid var(--border); }
+  .log-action { font-size: 0.88rem; color: var(--text); font-weight: 500; }
+  .log-date { font-size: 0.78rem; color: var(--muted); margin-top: 0.15rem; }
+  .log-pts { font-size: 0.95rem; font-weight: 800; color: #10b981; }
+  .log-pts.negative { color: #ef4444; }
+  .empty-log { text-align: center; padding: 2rem; color: var(--muted); font-size: 0.9rem; }
+</style>
+</head>
+<body>
+<nav>
+  <a href="/citizen/dashboard.html" class="nav-brand">🏛️ Civic Connect</a>
+  <div class="nav-links">
+    <a href="/citizen/dashboard.html">Dashboard</a>
+    <a href="/citizen/report.html">Report</a>
+    <a href="/citizen/profile.html" class="active">Profile</a>
+    <a href="/citizen/rewards.html">Rewards 🎁</a>
+    <a href="/citizen/vouchers.html">Vouchers</a>
+  </div>
+</nav>
+
+<div class="main">
+  <div id="content" style="color:var(--muted);text-align:center;padding:4rem;">Loading profile...</div>
+</div>
+
+<script>
+const token = localStorage.getItem('token');
+const role = localStorage.getItem('role');
+if (!token || role !== 'citizen') window.location.href = '/citizen/login.html';
+
+async function load() {
+  try {
+    const res = await fetch('/citizen/profile', { headers: { Authorization: 'Bearer ' + token } });
+    const p = await res.json();
+    if (!res.ok) throw new Error(p.detail);
+    render(p);
+  } catch (err) {
+    document.getElementById('content').textContent = 'Failed to load profile: ' + err.message;
+  }
+}
+
+function render(p) {
+  const levelEmojis = { Bronze: '🥉', Silver: '🥈', Gold: '🥇', Diamond: '💎' };
+  const bannerClass = { Bronze: 'bronze-banner', Silver: 'silver-banner', Gold: 'gold-banner', Diamond: 'diamond-banner' };
+
+  const milestones = [
+    { label: '🔥 3-day streak', target: 3, bonus: '+20pts' },
+    { label: '🔥 7-day streak', target: 7, bonus: '+50pts' },
+    { label: '🔥 30-day streak', target: 30, bonus: '+200pts' },
+  ];
+
+  document.getElementById('content').innerHTML = `
+    <div class="level-banner ${bannerClass[p.level] || 'bronze-banner'}">
+      <div class="level-left" style="flex:1">
+        <div style="font-size:1rem;opacity:0.85">Your Level</div>
+        <div class="level-name">${levelEmojis[p.level] || '🥉'} ${p.level}</div>
+        <div class="level-pts">${p.points} points total</div>
+        ${p.next_threshold ? `
+        <div class="progress-section">
+          <div class="progress-label">
+            <span>Progress to next level</span>
+            <span>${p.progress_to_next}% (${p.next_threshold - p.points} pts away)</span>
+          </div>
+          <div class="progress-bar"><div class="progress-fill" style="width:${p.progress_to_next}%"></div></div>
+        </div>` : '<div style="margin-top:0.5rem;font-size:0.9rem;opacity:0.9">🏆 Maximum level achieved!</div>'}
+      </div>
+      <div class="level-icon">${levelEmojis[p.level] || '🥉'}</div>
+    </div>
+
+    <div class="stats-row">
+      <div class="stat-card"><div class="stat-value">${p.points}</div><div class="stat-label">Total Points</div></div>
+      <div class="stat-card"><div class="stat-value">${p.streak_days}</div><div class="stat-label">🔥 Day Streak</div></div>
+      <div class="stat-card"><div class="stat-value">${p.point_history.length}</div><div class="stat-label">Actions Logged</div></div>
+    </div>
+
+    <div class="section">
+      <div class="section-title">🔥 Reporting Streak</div>
+      <div class="streak-display">
+        <div class="streak-num">${p.streak_days}</div>
+        <div class="streak-info">
+          <h3>${p.streak_days} Day${p.streak_days !== 1 ? 's' : ''} Streak!</h3>
+          <p>Keep reporting daily to unlock bonus points</p>
+          ${p.last_reported ? `<p style="font-size:0.78rem;margin-top:0.3rem;color:var(--muted)">Last reported: ${p.last_reported}</p>` : ''}
+        </div>
+      </div>
+      <div class="streak-milestones">
+        ${milestones.map(m => `
+          <div class="milestone ${p.streak_days >= m.target ? 'achieved' : ''}">
+            ${m.label} <span style="opacity:0.7">${m.bonus}</span>
+          </div>
+        `).join('')}
+      </div>
+    </div>
+
+    <div class="section">
+      <div class="section-title">📊 Point History</div>
+      <div class="point-log">
+        ${p.point_history.length ? p.point_history.map(l => `
+          <div class="log-entry">
+            <div>
+              <div class="log-action">${l.action}</div>
+              <div class="log-date">${new Date(l.timestamp).toLocaleString()}</div>
+            </div>
+            <div class="log-pts ${l.points < 0 ? 'negative' : ''}">${l.points > 0 ? '+' : ''}${l.points} pts</div>
+          </div>
+        `).join('') : '<div class="empty-log">No point history yet. Start reporting issues to earn points!</div>'}
+      </div>
+    </div>
+
+    <div style="display:flex;gap:1rem;flex-wrap:wrap;">
+      <a href="/citizen/rewards.html" style="flex:1;padding:1rem;background:linear-gradient(135deg,#1D4ED8,#3B82F6);color:white;border-radius:14px;text-align:center;text-decoration:none;font-weight:700;font-size:0.95rem;">🎁 Rewards Store</a>
+      <a href="/citizen/vouchers.html" style="flex:1;padding:1rem;background:linear-gradient(135deg,#7c3aed,#a855f7);color:white;border-radius:14px;text-align:center;text-decoration:none;font-weight:700;font-size:0.95rem;">🎫 My Vouchers</a>
+    </div>
+  `;
+}
+
+load();
+</script>
+</body>
+</html>

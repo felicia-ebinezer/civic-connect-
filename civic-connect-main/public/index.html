@@ -1,0 +1,226 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Civic Connect — Login</title>
+  <meta name="description" content="Smart Civic Issue Reporting and Resolution Platform. Report civic issues and track their resolution.">
+  <link rel="stylesheet" href="/css/style.css">
+</head>
+<body>
+  <div class="login-wrapper">
+    <div class="login-container">
+      <!-- Left Hero -->
+      <div class="login-hero">
+        <div style="margin-bottom:1rem">
+          <span style="font-size:2.5rem">🏛️</span>
+        </div>
+        <h1>Civic Connect</h1>
+        <p>Connecting citizens to a better city. Report civic issues, track resolution progress, and help make your community better.</p>
+        <div class="login-feature">
+          <div class="feat-icon">📸</div>
+          <span>Upload photos of civic issues</span>
+        </div>
+        <div class="login-feature">
+          <div class="feat-icon">📍</div>
+          <span>Location-based reporting</span>
+        </div>
+        <div class="login-feature">
+          <div class="feat-icon">📊</div>
+          <span>Real-time status tracking</span>
+        </div>
+        <div class="login-feature">
+          <div class="feat-icon">⚡</div>
+          <span>Smart priority assignment</span>
+        </div>
+      </div>
+
+      <!-- Right Form -->
+      <div class="login-form-side">
+        <h2 id="formTitle">Welcome Back</h2>
+        <p class="subtitle" id="formSubtitle">Sign in to continue to your dashboard</p>
+
+        <!-- Tabs -->
+        <div class="login-tabs">
+          <button class="login-tab active" data-tab="login" onclick="switchTab('login')">Sign In</button>
+          <button class="login-tab" data-tab="register" onclick="switchTab('register')">Register</button>
+        </div>
+
+        <div class="alert alert-error" id="alertError"></div>
+        <div class="alert alert-success" id="alertSuccess"></div>
+
+        <!-- Login Form -->
+        <form id="loginForm" onsubmit="handleLogin(event)">
+          <div class="form-group">
+            <label for="loginEmail">Email Address</label>
+            <input type="email" id="loginEmail" class="form-control" placeholder="your@email.com" required>
+          </div>
+          <div class="form-group">
+            <label for="loginPassword">Password</label>
+            <input type="password" id="loginPassword" class="form-control" placeholder="••••••••" required>
+          </div>
+          <button type="submit" class="btn btn-primary btn-block btn-lg" id="loginBtn">
+            Sign In
+          </button>
+          <div class="divider">Demo Credentials</div>
+          <div style="display:flex;gap:8px">
+            <button type="button" class="btn btn-outline btn-sm" style="flex:1" onclick="fillDemo('citizen')">👤 Citizen</button>
+            <button type="button" class="btn btn-outline btn-sm" style="flex:1" onclick="fillDemo('admin')">🔧 Admin</button>
+          </div>
+        </form>
+
+        <!-- Register Form -->
+        <form id="registerForm" style="display:none" onsubmit="handleRegister(event)">
+          <div class="form-group">
+            <label for="regName">Full Name</label>
+            <input type="text" id="regName" class="form-control" placeholder="John Doe" required>
+          </div>
+          <div class="form-group">
+            <label for="regEmail">Email Address</label>
+            <input type="email" id="regEmail" class="form-control" placeholder="your@email.com" required>
+          </div>
+          <div class="form-group">
+            <label for="regPhone">Phone Number</label>
+            <input type="tel" id="regPhone" class="form-control" placeholder="9876543210">
+          </div>
+          <div class="form-group">
+            <label for="regPassword">Password (min 6 characters)</label>
+            <input type="password" id="regPassword" class="form-control" placeholder="••••••••" required minlength="6">
+          </div>
+          <button type="submit" class="btn btn-primary btn-block btn-lg" id="regBtn">
+            Create Account
+          </button>
+        </form>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const API = '';
+
+    // Check if already logged in
+    const token = localStorage.getItem('token');
+    const user = JSON.parse(localStorage.getItem('user') || 'null');
+    if (token && user) {
+      window.location.href = user.role === 'admin' ? '/admin' : '/citizen';
+    }
+
+    function switchTab(tab) {
+      document.querySelectorAll('.login-tab').forEach(t => t.classList.remove('active'));
+      document.querySelector(`[data-tab="${tab}"]`).classList.add('active');
+      hideAlerts();
+
+      if (tab === 'login') {
+        document.getElementById('loginForm').style.display = 'block';
+        document.getElementById('registerForm').style.display = 'none';
+        document.getElementById('formTitle').textContent = 'Welcome Back';
+        document.getElementById('formSubtitle').textContent = 'Sign in to continue to your dashboard';
+      } else {
+        document.getElementById('loginForm').style.display = 'none';
+        document.getElementById('registerForm').style.display = 'block';
+        document.getElementById('formTitle').textContent = 'Create Account';
+        document.getElementById('formSubtitle').textContent = 'Join Civic Connect as a citizen';
+      }
+    }
+
+    function fillDemo(role) {
+      if (role === 'citizen') {
+        document.getElementById('loginEmail').value = 'citizen@example.com';
+        document.getElementById('loginPassword').value = 'citizen123';
+      } else {
+        document.getElementById('loginEmail').value = 'admin@civicconnect.com';
+        document.getElementById('loginPassword').value = 'admin123';
+      }
+    }
+
+    function showError(msg) {
+      const el = document.getElementById('alertError');
+      el.textContent = msg;
+      el.style.display = 'block';
+      document.getElementById('alertSuccess').style.display = 'none';
+    }
+
+    function showSuccess(msg) {
+      const el = document.getElementById('alertSuccess');
+      el.textContent = msg;
+      el.style.display = 'block';
+      document.getElementById('alertError').style.display = 'none';
+    }
+
+    function hideAlerts() {
+      document.getElementById('alertError').style.display = 'none';
+      document.getElementById('alertSuccess').style.display = 'none';
+    }
+
+    async function handleLogin(e) {
+      e.preventDefault();
+      const btn = document.getElementById('loginBtn');
+      btn.innerHTML = '<span class="spinner"></span> Signing in...';
+      btn.disabled = true;
+      hideAlerts();
+
+      try {
+        const res = await fetch(API + '/api/auth/login', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            email: document.getElementById('loginEmail').value,
+            password: document.getElementById('loginPassword').value
+          })
+        });
+        const data = await res.json();
+
+        if (!res.ok) throw new Error(data.error || 'Login failed');
+
+        localStorage.setItem('token', data.token);
+        localStorage.setItem('user', JSON.stringify(data.user));
+
+        showSuccess('Login successful! Redirecting...');
+        setTimeout(() => {
+          window.location.href = data.user.role === 'admin' ? '/admin' : '/citizen';
+        }, 500);
+      } catch (err) {
+        showError(err.message);
+        btn.innerHTML = 'Sign In';
+        btn.disabled = false;
+      }
+    }
+
+    async function handleRegister(e) {
+      e.preventDefault();
+      const btn = document.getElementById('regBtn');
+      btn.innerHTML = '<span class="spinner"></span> Creating...';
+      btn.disabled = true;
+      hideAlerts();
+
+      try {
+        const res = await fetch(API + '/api/auth/register', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            name: document.getElementById('regName').value,
+            email: document.getElementById('regEmail').value,
+            phone: document.getElementById('regPhone').value,
+            password: document.getElementById('regPassword').value
+          })
+        });
+        const data = await res.json();
+
+        if (!res.ok) throw new Error(data.error || 'Registration failed');
+
+        localStorage.setItem('token', data.token);
+        localStorage.setItem('user', JSON.stringify(data.user));
+
+        showSuccess('Account created! Redirecting...');
+        setTimeout(() => {
+          window.location.href = '/citizen';
+        }, 500);
+      } catch (err) {
+        showError(err.message);
+        btn.innerHTML = 'Create Account';
+        btn.disabled = false;
+      }
+    }
+  </script>
+</body>
+</html>

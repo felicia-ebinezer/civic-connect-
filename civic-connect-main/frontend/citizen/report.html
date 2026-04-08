@@ -1,0 +1,354 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" /><meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Report Issue — Civic Connect</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet" />
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  :root { --blue: #1D4ED8; --blue-light: #3B82F6; --bg: #EFF6FF; --white: #fff; --text: #1e293b; --muted: #64748b; --border: #e2e8f0; --success: #10b981; --error: #ef4444; }
+  body { font-family: 'Inter', sans-serif; background: var(--bg); min-height: 100vh; }
+  /* NAV */
+  nav { background: var(--blue); color: white; padding: 0.9rem 2rem; display: flex; align-items: center; justify-content: space-between; box-shadow: 0 2px 12px rgba(29,78,216,0.3); position: sticky; top: 0; z-index: 999; }
+  .nav-brand { display: flex; align-items: center; gap: 0.6rem; font-size: 1.1rem; font-weight: 800; text-decoration: none; color: white; }
+  .nav-links { display: flex; align-items: center; gap: 1rem; }
+  .nav-links a { color: rgba(255,255,255,0.85); text-decoration: none; font-size: 0.88rem; font-weight: 500; transition: color 0.2s; }
+  .nav-links a:hover, .nav-links a.active { color: white; }
+  .nav-user { display: flex; align-items: center; gap: 0.5rem; font-size: 0.88rem; }
+  .nav-avatar { width: 32px; height: 32px; background: rgba(255,255,255,0.2); border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 0.85rem; }
+  /* MAIN */
+  .main { max-width: 820px; margin: 2rem auto; padding: 0 1.5rem 4rem; }
+  .page-title { font-size: 1.6rem; font-weight: 800; color: var(--text); margin-bottom: 0.4rem; }
+  .page-sub { color: var(--muted); margin-bottom: 2rem; font-size: 0.95rem; }
+  /* UPLOAD */
+  .upload-area { border: 2px dashed #93c5fd; border-radius: 16px; padding: 2.5rem; text-align: center; background: #f0f9ff; cursor: pointer; transition: all 0.2s; position: relative; }
+  .upload-area:hover, .upload-area.drag { border-color: var(--blue); background: #dbeafe; }
+  .upload-area input[type=file] { position: absolute; inset: 0; opacity: 0; cursor: pointer; }
+  .upload-icon { font-size: 2.5rem; margin-bottom: 0.75rem; }
+  .upload-text { font-size: 1rem; font-weight: 600; color: var(--blue); margin-bottom: 0.25rem; }
+  .upload-hint { font-size: 0.82rem; color: var(--muted); }
+  .preview-img { max-width: 100%; max-height: 300px; border-radius: 12px; margin-top: 1rem; object-fit: cover; border: 2px solid #dbeafe; }
+  /* AI CARD */
+  .ai-card { background: linear-gradient(135deg, #1D4ED8, #3B82F6); color: white; border-radius: 16px; padding: 1.5rem; margin: 1.25rem 0; display: none; }
+  .ai-card.show { display: block; animation: slideIn 0.35s ease; }
+  @keyframes slideIn { from { opacity: 0; transform: translateY(-12px); } to { opacity: 1; transform: translateY(0); } }
+  .ai-header { display: flex; align-items: center; gap: 0.6rem; margin-bottom: 1rem; }
+  .ai-badge { background: rgba(255,255,255,0.2); border-radius: 6px; padding: 0.25rem 0.6rem; font-size: 0.72rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; }
+  .ai-title { font-size: 1rem; font-weight: 700; }
+  .ai-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin-bottom: 1rem; }
+  .ai-field label { font-size: 0.72rem; opacity: 0.8; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 0.2rem; display: block; }
+  .ai-field value { font-size: 1rem; font-weight: 700; }
+  .confidence-bar { background: rgba(255,255,255,0.2); border-radius: 999px; height: 8px; margin-top: 0.4rem; overflow: hidden; }
+  .confidence-fill { background: white; border-radius: 999px; height: 100%; transition: width 0.8s ease; }
+  .ai-description { background: rgba(255,255,255,0.15); border-radius: 10px; padding: 0.75rem 1rem; font-size: 0.88rem; font-style: italic; }
+  .ai-override { font-size: 0.78rem; opacity: 0.8; margin-top: 0.75rem; text-align: center; }
+  /* FORM */
+  .section { background: var(--white); border-radius: 16px; padding: 1.75rem; margin-bottom: 1.25rem; box-shadow: 0 2px 12px rgba(0,0,0,0.05); border: 1px solid var(--border); }
+  .section-title { font-size: 0.9rem; font-weight: 700; color: var(--text); text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 1.25rem; display: flex; align-items: center; gap: 0.5rem; }
+  .form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; }
+  .form-group { margin-bottom: 1rem; }
+  .form-group.full { grid-column: 1 / -1; }
+  label { display: block; font-size: 0.85rem; font-weight: 600; color: var(--text); margin-bottom: 0.4rem; }
+  input, select, textarea { width: 100%; padding: 0.75rem 1rem; border: 2px solid var(--border); border-radius: 10px; font-size: 0.95rem; font-family: inherit; color: var(--text); outline: none; background: #f8fafc; transition: border-color 0.2s; }
+  input:focus, select:focus, textarea:focus { border-color: var(--blue); background: white; }
+  textarea { resize: vertical; min-height: 80px; }
+  #map { height: 250px; border-radius: 12px; border: 2px solid var(--border); z-index: 0; }
+  .location-row { display: flex; gap: 0.75rem; margin-bottom: 0.75rem; }
+  .location-row input { flex: 1; }
+  .gps-btn { background: var(--blue); color: white; border: none; border-radius: 10px; padding: 0 1rem; font-size: 0.85rem; font-weight: 600; cursor: pointer; white-space: nowrap; display: flex; align-items: center; gap: 0.4rem; }
+  .gps-btn:hover { background: var(--blue-light); }
+  /* SEVERITY */
+  .severity-group { display: flex; gap: 0.6rem; flex-wrap: wrap; }
+  .severity-btn { padding: 0.45rem 1rem; border-radius: 8px; border: 2px solid var(--border); background: #f8fafc; font-size: 0.85rem; font-weight: 600; cursor: pointer; transition: all 0.2s; color: var(--text); }
+  .severity-btn.active-low { background: #d1fae5; border-color: #10b981; color: #064e3b; }
+  .severity-btn.active-medium { background: #fff7ed; border-color: #f59e0b; color: #78350f; }
+  .severity-btn.active-high { background: #fef3c7; border-color: #f97316; color: #7c2d12; }
+  .severity-btn.active-critical { background: #fee2e2; border-color: #ef4444; color: #7f1d1d; }
+  /* SUBMIT */
+  .submit-btn { width: 100%; padding: 1rem; background: linear-gradient(135deg, #1D4ED8, #3B82F6); color: white; border: none; border-radius: 14px; font-size: 1.05rem; font-weight: 700; cursor: pointer; transition: all 0.2s; box-shadow: 0 4px 16px rgba(29,78,216,0.35); }
+  .submit-btn:hover { transform: translateY(-2px); box-shadow: 0 8px 24px rgba(29,78,216,0.45); }
+  .submit-btn:disabled { opacity: 0.6; transform: none; }
+  .alert { padding: 0.85rem 1rem; border-radius: 10px; font-size: 0.88rem; margin-bottom: 1rem; display: none; }
+  .alert-success { background: #d1fae5; color: #064e3b; border: 1px solid #6ee7b7; }
+  .alert-error { background: #fef2f2; color: var(--error); border: 1px solid #fecaca; }
+  .spinner { display: inline-block; width: 18px; height: 18px; border: 2px solid rgba(255,255,255,0.4); border-top-color: white; border-radius: 50%; animation: spin 0.6s linear infinite; vertical-align: middle; margin-right: 6px; }
+  @keyframes spin { to { transform: rotate(360deg); } }
+  @media (max-width: 600px) { .form-grid { grid-template-columns: 1fr; } .ai-grid { grid-template-columns: 1fr; } }
+</style>
+</head>
+<body>
+<nav>
+  <a href="/citizen/dashboard.html" class="nav-brand">🏛️ Civic Connect</a>
+  <div class="nav-links">
+    <a href="/citizen/dashboard.html">Dashboard</a>
+    <a href="/citizen/report.html" class="active">Report</a>
+    <a href="/citizen/profile.html">Profile</a>
+    <a href="/citizen/rewards.html">Rewards</a>
+  </div>
+  <div class="nav-user">
+    <div class="nav-avatar" id="navInitial">?</div>
+    <span id="navName">Loading...</span>
+  </div>
+</nav>
+
+<div class="main">
+  <div class="page-title">📸 Report an Issue</div>
+  <p class="page-sub">Upload a photo and our AI will auto-detect the issue type, or fill in the form manually.</p>
+
+  <div class="alert alert-success" id="successAlert"></div>
+  <div class="alert alert-error" id="errorAlert"></div>
+
+  <!-- Photo Upload -->
+  <div class="section">
+    <div class="section-title">📷 Photo Upload</div>
+    <div class="upload-area" id="uploadArea">
+      <input type="file" id="photoInput" accept="image/*" />
+      <div class="upload-icon">📷</div>
+      <div class="upload-text">Click or drag photo here</div>
+      <div class="upload-hint">JPG, PNG, WEBP — max 10MB. AI will auto-detect the issue!</div>
+      <img class="preview-img" id="previewImg" style="display:none" />
+    </div>
+    <div id="aiLoading" style="text-align:center;padding:1rem;display:none;color:var(--blue);font-weight:600;">
+      <span class="spinner" style="border-color:rgba(29,78,216,0.3);border-top-color:var(--blue);"></span> Analyzing with AI...
+    </div>
+  </div>
+
+  <!-- AI Result Card -->
+  <div class="ai-card" id="aiCard">
+    <div class="ai-header">
+      <span class="ai-badge">🤖 AI Detected</span>
+      <span class="ai-title" id="aiCategory">—</span>
+    </div>
+    <div class="ai-grid">
+      <div class="ai-field">
+        <label>Severity</label>
+        <value id="aiSeverity">—</value>
+      </div>
+      <div class="ai-field">
+        <label>Confidence</label>
+        <value id="aiConfidenceText">—</value>
+        <div class="confidence-bar"><div class="confidence-fill" id="aiConfidenceBar" style="width:0%"></div></div>
+      </div>
+    </div>
+    <div class="ai-description" id="aiDescription">—</div>
+    <div class="ai-override">✏️ Fields auto-filled below — you can override any value before submitting</div>
+  </div>
+
+  <!-- Form -->
+  <div class="section">
+    <div class="section-title">📋 Issue Details</div>
+    <div class="form-grid">
+      <div class="form-group">
+        <label>Category *</label>
+        <select id="category" required>
+          <option value="">Select category</option>
+          <option value="Pothole">🕳️ Pothole</option>
+          <option value="Garbage">🗑️ Garbage</option>
+          <option value="Street Light">💡 Street Light</option>
+          <option value="Water Leakage">💧 Water Leakage</option>
+          <option value="Road Damage">🛣️ Road Damage</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label>Severity *</label>
+        <div class="severity-group" id="severityGroup">
+          <button type="button" class="severity-btn" data-val="Low">Low</button>
+          <button type="button" class="severity-btn" data-val="Medium">Medium</button>
+          <button type="button" class="severity-btn" data-val="High">High</button>
+          <button type="button" class="severity-btn" data-val="Critical">Critical</button>
+        </div>
+        <input type="hidden" id="severity" value="Medium" />
+      </div>
+      <div class="form-group full">
+        <label>Description *</label>
+        <textarea id="description" placeholder="Describe the issue in detail..." required></textarea>
+      </div>
+    </div>
+  </div>
+
+  <!-- Location -->
+  <div class="section">
+    <div class="section-title">📍 Location</div>
+    <div class="location-row">
+      <input type="number" id="latitude" placeholder="Latitude" step="any" readonly />
+      <input type="number" id="longitude" placeholder="Longitude" step="any" readonly />
+      <button class="gps-btn" id="gpsBtn" type="button" onclick="getGPS()">📍 Use GPS</button>
+    </div>
+    <div id="map"></div>
+  </div>
+
+  <button class="submit-btn" id="submitBtn" onclick="submitComplaint()">Submit Complaint</button>
+</div>
+
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script>
+const token = localStorage.getItem('token');
+const role = localStorage.getItem('role');
+if (!token || role !== 'citizen') window.location.href = '/citizen/login.html';
+
+document.getElementById('navName').textContent = localStorage.getItem('name') || 'Citizen';
+const initials = (localStorage.getItem('name') || 'C').charAt(0).toUpperCase();
+document.getElementById('navInitial').textContent = initials;
+
+let map, marker, uploadedPhotoUrl = null, aiData = null;
+let selectedSeverity = 'Medium';
+
+// Map init
+window.addEventListener('load', () => {
+  map = L.map('map').setView([12.9716, 77.5946], 13);
+  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+    attribution: '© OpenStreetMap contributors'
+  }).addTo(map);
+  map.on('click', (e) => setLocation(e.latlng.lat, e.latlng.lng));
+  setSeverity('Medium');
+});
+
+function setLocation(lat, lng) {
+  document.getElementById('latitude').value = lat.toFixed(6);
+  document.getElementById('longitude').value = lng.toFixed(6);
+  if (marker) map.removeLayer(marker);
+  marker = L.marker([lat, lng]).addTo(map);
+  map.setView([lat, lng], 15);
+}
+
+function getGPS() {
+  if (!navigator.geolocation) return alert('Geolocation not supported');
+  document.getElementById('gpsBtn').textContent = '⌛ Locating...';
+  navigator.geolocation.getCurrentPosition(
+    pos => {
+      setLocation(pos.coords.latitude, pos.coords.longitude);
+      document.getElementById('gpsBtn').innerHTML = '📍 Use GPS';
+    },
+    () => { alert('Could not get location'); document.getElementById('gpsBtn').innerHTML = '📍 Use GPS'; }
+  );
+}
+
+// Severity buttons
+document.getElementById('severityGroup').addEventListener('click', (e) => {
+  if (e.target.dataset.val) setSeverity(e.target.dataset.val);
+});
+function setSeverity(val) {
+  selectedSeverity = val;
+  document.getElementById('severity').value = val;
+  document.querySelectorAll('.severity-btn').forEach(b => {
+    b.className = 'severity-btn' + (b.dataset.val === val ? ` active-${val.toLowerCase()}` : '');
+  });
+}
+
+// Photo + AI detection
+const photoInput = document.getElementById('photoInput');
+photoInput.addEventListener('change', async (e) => {
+  const file = e.target.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = (ev) => {
+    document.getElementById('previewImg').src = ev.target.result;
+    document.getElementById('previewImg').style.display = 'block';
+  };
+  reader.readAsDataURL(file);
+
+  document.getElementById('aiLoading').style.display = 'block';
+  document.getElementById('aiCard').classList.remove('show');
+
+  // Upload photo
+  try {
+    const fd = new FormData();
+    fd.append('file', file);
+    const uploadRes = await fetch('/upload-photo', { method: 'POST', headers: { Authorization: 'Bearer ' + token }, body: fd });
+    if (uploadRes.ok) {
+      const ud = await uploadRes.json();
+      uploadedPhotoUrl = ud.photo_url;
+    }
+  } catch {}
+
+  // AI detection
+  try {
+    const fd2 = new FormData();
+    fd2.append('file', file);
+    const aiRes = await fetch('/detect-image', { method: 'POST', body: fd2 });
+    const data = await aiRes.json();
+    aiData = data;
+    showAI(data);
+  } catch (err) {
+    console.error('AI detection failed:', err);
+  } finally {
+    document.getElementById('aiLoading').style.display = 'none';
+  }
+});
+
+function showAI(data) {
+  document.getElementById('aiCategory').textContent = data.category || '—';
+  document.getElementById('aiSeverity').textContent = data.severity || '—';
+  document.getElementById('aiConfidenceText').textContent = (data.confidence || 0) + '%';
+  document.getElementById('aiConfidenceBar').style.width = (data.confidence || 0) + '%';
+  document.getElementById('aiDescription').textContent = data.description || '—';
+  document.getElementById('aiCard').classList.add('show');
+
+  // Auto-fill form
+  if (data.category) document.getElementById('category').value = data.category;
+  if (data.severity) setSeverity(data.severity);
+  if (data.description) document.getElementById('description').value = data.description;
+}
+
+async function submitComplaint() {
+  const category = document.getElementById('category').value;
+  const description = document.getElementById('description').value;
+  const lat = document.getElementById('latitude').value;
+  const lng = document.getElementById('longitude').value;
+
+  if (!category) return showError('Please select a category');
+  if (!description.trim()) return showError('Please enter a description');
+
+  const submitBtn = document.getElementById('submitBtn');
+  submitBtn.disabled = true;
+  submitBtn.innerHTML = '<span class="spinner"></span>Submitting...';
+
+  try {
+    const res = await fetch('/complaints', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + token },
+      body: JSON.stringify({
+        category, description,
+        latitude: lat ? parseFloat(lat) : null,
+        longitude: lng ? parseFloat(lng) : null,
+        severity: selectedSeverity,
+        ai_detected: !!aiData,
+        ai_confidence: aiData ? aiData.confidence : null,
+        photo_url: uploadedPhotoUrl
+      })
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.detail || 'Submission failed');
+
+    document.getElementById('successAlert').textContent = `✅ Complaint submitted! Tracking ID: #${data.complaint.id}`;
+    document.getElementById('successAlert').style.display = 'block';
+    document.getElementById('errorAlert').style.display = 'none';
+
+    // Show streak bonuses
+    if (data.streak_bonuses && data.streak_bonuses.length > 0) {
+      const bonus = data.streak_bonuses[0];
+      setTimeout(() => alert(`🔥 Streak Bonus! +${bonus.points_earned} points! Keep reporting to earn more!`), 500);
+    }
+
+    setTimeout(() => window.location.href = '/citizen/dashboard.html', 2000);
+  } catch (err) {
+    showError(err.message);
+    submitBtn.disabled = false;
+    submitBtn.textContent = 'Submit Complaint';
+  }
+}
+
+function showError(msg) {
+  document.getElementById('errorAlert').textContent = msg;
+  document.getElementById('errorAlert').style.display = 'block';
+}
+
+// Drag & drop
+const uploadArea = document.getElementById('uploadArea');
+['dragenter','dragover'].forEach(e => uploadArea.addEventListener(e, ev => { ev.preventDefault(); uploadArea.classList.add('drag'); }));
+['dragleave','drop'].forEach(e => uploadArea.addEventListener(e, ev => { ev.preventDefault(); uploadArea.classList.remove('drag'); }));
+uploadArea.addEventListener('drop', ev => { const file = ev.dataTransfer.files[0]; if (file) { photoInput.files = ev.dataTransfer.files; photoInput.dispatchEvent(new Event('change')); } });
+</script>
+</body>
+</html>

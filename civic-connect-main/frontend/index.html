@@ -1,0 +1,218 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Civic Connect — Connecting Citizens to a Better City</title>
+<meta name="description" content="Civic Connect is a Smart Civic Issue Reporting and Resolution Platform that connects citizens to their local government." />
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet" />
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  :root {
+    --blue: #1D4ED8;
+    --blue-light: #3B82F6;
+    --blue-dark: #1e3a8a;
+    --bg: #EFF6FF;
+    --white: #ffffff;
+    --text: #1e293b;
+    --text-muted: #64748b;
+    --border: #e2e8f0;
+    --shadow: 0 20px 60px rgba(29,78,216,0.15);
+  }
+  body {
+    font-family: 'Inter', sans-serif;
+    background: var(--bg);
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 2rem 1rem;
+    position: relative;
+    overflow-x: hidden;
+  }
+  /* Background blobs */
+  body::before, body::after {
+    content: '';
+    position: fixed;
+    border-radius: 50%;
+    filter: blur(80px);
+    opacity: 0.3;
+    z-index: 0;
+    pointer-events: none;
+  }
+  body::before {
+    width: 600px; height: 600px;
+    background: var(--blue);
+    top: -200px; left: -200px;
+  }
+  body::after {
+    width: 500px; height: 500px;
+    background: #60a5fa;
+    bottom: -200px; right: -200px;
+  }
+
+  .container { position: relative; z-index: 1; width: 100%; max-width: 960px; }
+
+  .header { text-align: center; margin-bottom: 3rem; }
+  .logo {
+    display: inline-flex; align-items: center; gap: 0.75rem;
+    background: var(--blue); border-radius: 16px;
+    padding: 0.75rem 1.5rem; margin-bottom: 1.5rem;
+    box-shadow: 0 8px 32px rgba(29,78,216,0.4);
+  }
+  .logo-icon { font-size: 1.8rem; }
+  .logo-text { color: white; font-size: 1.4rem; font-weight: 800; letter-spacing: -0.5px; }
+  .tagline { color: var(--text-muted); font-size: 1.15rem; font-weight: 400; }
+  .tagline strong { color: var(--blue); font-weight: 600; }
+
+  .cards { display: grid; grid-template-columns: 1fr 1fr; gap: 2rem; }
+
+  .card {
+    background: var(--white);
+    border-radius: 24px;
+    padding: 2.5rem;
+    box-shadow: var(--shadow);
+    border: 1px solid var(--border);
+    transition: transform 0.3s ease, box-shadow 0.3s ease;
+    position: relative;
+    overflow: hidden;
+  }
+  .card::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    height: 4px;
+  }
+  .card.citizen::before { background: linear-gradient(90deg, #1D4ED8, #60a5fa); }
+  .card.admin::before { background: linear-gradient(90deg, #7c3aed, #c084fc); }
+  .card:hover { transform: translateY(-6px); box-shadow: 0 30px 80px rgba(29,78,216,0.2); }
+
+  .card-icon { font-size: 3.5rem; margin-bottom: 1rem; display: block; }
+  .card h2 { font-size: 1.5rem; font-weight: 700; color: var(--text); margin-bottom: 0.5rem; }
+  .card p { color: var(--text-muted); font-size: 0.95rem; line-height: 1.6; margin-bottom: 1.75rem; }
+
+  .btn {
+    display: block; width: 100%;
+    padding: 0.85rem 1.5rem;
+    border-radius: 12px;
+    font-size: 0.95rem; font-weight: 600;
+    text-align: center; text-decoration: none;
+    border: none; cursor: pointer;
+    transition: all 0.2s ease;
+    margin-bottom: 0.75rem;
+  }
+  .btn-primary {
+    background: linear-gradient(135deg, #1D4ED8, #3B82F6);
+    color: white;
+    box-shadow: 0 4px 16px rgba(29,78,216,0.35);
+  }
+  .btn-primary:hover { transform: translateY(-2px); box-shadow: 0 8px 24px rgba(29,78,216,0.45); }
+  .btn-outline {
+    background: transparent;
+    color: var(--blue);
+    border: 2px solid #dbeafe;
+  }
+  .btn-outline:hover { background: #eff6ff; border-color: var(--blue-light); }
+
+  .btn-admin {
+    background: linear-gradient(135deg, #7c3aed, #a855f7);
+    color: white;
+    box-shadow: 0 4px 16px rgba(124,58,237,0.35);
+  }
+  .btn-admin:hover { transform: translateY(-2px); box-shadow: 0 8px 24px rgba(124,58,237,0.45); }
+
+  .badge {
+    display: inline-block;
+    background: #eff6ff; color: var(--blue);
+    font-size: 0.7rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px;
+    padding: 0.25rem 0.6rem; border-radius: 999px;
+    margin-bottom: 1rem;
+  }
+  .badge.admin { background: #f5f3ff; color: #7c3aed; }
+
+  .features {
+    display: flex; flex-wrap: wrap; gap: 0.4rem; margin-bottom: 1.5rem;
+  }
+  .feature-tag {
+    background: #f8fafc; color: var(--text-muted);
+    font-size: 0.75rem; padding: 0.3rem 0.7rem; border-radius: 6px;
+    border: 1px solid var(--border);
+  }
+
+  .footer { text-align: center; margin-top: 2.5rem; color: var(--text-muted); font-size: 0.85rem; }
+  .footer a { color: var(--blue); text-decoration: none; }
+  .footer a:hover { text-decoration: underline; }
+
+  .stats-row {
+    display: flex; justify-content: center; gap: 2.5rem;
+    margin-bottom: 2.5rem; flex-wrap: wrap;
+  }
+  .stat { text-align: center; }
+  .stat-value { font-size: 1.5rem; font-weight: 800; color: var(--blue); }
+  .stat-label { font-size: 0.8rem; color: var(--text-muted); margin-top: 0.15rem; }
+
+  @media (max-width: 640px) {
+    .cards { grid-template-columns: 1fr; }
+    .stats-row { gap: 1.5rem; }
+  }
+</style>
+</head>
+<body>
+<div class="container">
+  <div class="header">
+    <div class="logo">
+      <span class="logo-icon">🏛️</span>
+      <span class="logo-text">Civic Connect</span>
+    </div>
+    <p class="tagline">Connecting citizens to <strong>a better city</strong></p>
+  </div>
+
+  <div class="stats-row" id="statsRow">
+    <div class="stat"><div class="stat-value">10+</div><div class="stat-label">Issues Tracked</div></div>
+    <div class="stat"><div class="stat-value">3</div><div class="stat-label">Active Citizens</div></div>
+    <div class="stat"><div class="stat-value">5</div><div class="stat-label">Field Workers</div></div>
+    <div class="stat"><div class="stat-value">48h</div><div class="stat-label">Avg Resolution</div></div>
+  </div>
+
+  <div class="cards">
+    <!-- Citizen Card -->
+    <div class="card citizen">
+      <span class="badge">Citizen Portal</span>
+      <span class="card-icon">👤</span>
+      <h2>I'm a Citizen</h2>
+      <p>Report civic issues, track resolution progress, earn rewards for active participation, and help make your city better.</p>
+      <div class="features">
+        <span class="feature-tag">📸 AI Photo Detection</span>
+        <span class="feature-tag">📍 Live Tracking</span>
+        <span class="feature-tag">🎁 Rewards &amp; Passes</span>
+        <span class="feature-tag">🔥 Streak Bonuses</span>
+      </div>
+      <a href="/citizen/login.html" class="btn btn-primary">Login as Citizen</a>
+      <a href="/citizen/register.html" class="btn btn-outline">Create New Account</a>
+    </div>
+
+    <!-- Admin Card -->
+    <div class="card admin">
+      <span class="badge admin">Authority Portal</span>
+      <span class="card-icon">🏛️</span>
+      <h2>I'm an Authority</h2>
+      <p>Manage and resolve civic complaints, assign field teams, monitor SLA compliance, and track city-wide metrics.</p>
+      <div class="features">
+        <span class="feature-tag">📊 Analytics Dashboard</span>
+        <span class="feature-tag">🗺️ Live Map</span>
+        <span class="feature-tag">👷 Team Management</span>
+        <span class="feature-tag">⏱️ SLA Tracking</span>
+      </div>
+      <a href="/admin/login.html" class="btn btn-admin">Login as Authority</a>
+    </div>
+  </div>
+
+  <div class="footer">
+    &copy; 2026 Civic Connect. Built to make cities smarter. &nbsp;|&nbsp;
+    <a href="#">Privacy Policy</a> &nbsp;|&nbsp; <a href="#">Support</a>
+  </div>
+</div>
+</body>
+</html>

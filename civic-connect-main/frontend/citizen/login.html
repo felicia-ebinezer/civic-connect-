@@ -1,0 +1,110 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" /><meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Citizen Login — Civic Connect</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet" />
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  :root { --blue: #1D4ED8; --blue-light: #3B82F6; --bg: #EFF6FF; --white: #fff; --text: #1e293b; --muted: #64748b; --border: #e2e8f0; --error: #ef4444; }
+  body { font-family: 'Inter', sans-serif; background: var(--bg); min-height: 100vh; display: flex; align-items: center; justify-content: center; padding: 1.5rem; }
+  body::before { content: ''; position: fixed; width: 500px; height: 500px; background: var(--blue); border-radius: 50%; filter: blur(100px); opacity: 0.12; top: -200px; left: -200px; pointer-events: none; }
+  .card { background: var(--white); border-radius: 24px; padding: 2.5rem; width: 100%; max-width: 420px; box-shadow: 0 20px 60px rgba(29,78,216,0.15); border: 1px solid var(--border); position: relative; z-index: 1; }
+  .back-link { display: inline-flex; align-items: center; gap: 0.4rem; color: var(--blue); text-decoration: none; font-size: 0.85rem; font-weight: 500; margin-bottom: 1.5rem; }
+  .back-link:hover { text-decoration: underline; }
+  .logo { display: flex; align-items: center; gap: 0.6rem; margin-bottom: 0.75rem; }
+  .logo-icon { background: var(--blue); color: white; border-radius: 10px; width: 40px; height: 40px; display: flex; align-items: center; justify-content: center; font-size: 1.2rem; }
+  .logo-name { font-size: 1.2rem; font-weight: 800; color: var(--text); }
+  h1 { font-size: 1.6rem; font-weight: 700; color: var(--text); margin-bottom: 0.35rem; }
+  .subtitle { color: var(--muted); font-size: 0.9rem; margin-bottom: 1.75rem; }
+  .form-group { margin-bottom: 1.1rem; }
+  label { display: block; font-size: 0.85rem; font-weight: 600; color: var(--text); margin-bottom: 0.4rem; }
+  input { width: 100%; padding: 0.75rem 1rem; border: 2px solid var(--border); border-radius: 10px; font-size: 0.95rem; font-family: inherit; color: var(--text); transition: border-color 0.2s; outline: none; background: #f8fafc; }
+  input:focus { border-color: var(--blue); background: white; }
+  .btn { width: 100%; padding: 0.9rem; border: none; border-radius: 12px; font-size: 1rem; font-weight: 700; cursor: pointer; transition: all 0.2s; margin-top: 0.5rem; background: linear-gradient(135deg, #1D4ED8, #3B82F6); color: white; box-shadow: 0 4px 16px rgba(29,78,216,0.35); }
+  .btn:hover { transform: translateY(-2px); box-shadow: 0 8px 24px rgba(29,78,216,0.45); }
+  .btn:disabled { opacity: 0.6; transform: none; cursor: not-allowed; }
+  .divider { text-align: center; color: var(--muted); font-size: 0.85rem; margin: 1rem 0; }
+  .register-link { text-align: center; font-size: 0.9rem; color: var(--muted); }
+  .register-link a { color: var(--blue); font-weight: 600; text-decoration: none; }
+  .register-link a:hover { text-decoration: underline; }
+  .alert { padding: 0.75rem 1rem; border-radius: 10px; font-size: 0.87rem; margin-bottom: 1rem; display: none; }
+  .alert-error { background: #fef2f2; color: var(--error); border: 1px solid #fecaca; }
+  .spinner { display: inline-block; width: 18px; height: 18px; border: 2px solid rgba(255,255,255,0.4); border-top-color: white; border-radius: 50%; animation: spin 0.6s linear infinite; vertical-align: middle; margin-right: 6px; }
+  @keyframes spin { to { transform: rotate(360deg); } }
+</style>
+</head>
+<body>
+<div class="card">
+  <a href="/" class="back-link">← Back to Home</a>
+  <div class="logo">
+    <div class="logo-icon">🏛️</div>
+    <span class="logo-name">Civic Connect</span>
+  </div>
+  <h1>Welcome back</h1>
+  <p class="subtitle">Sign in to your citizen account</p>
+
+  <div class="alert alert-error" id="errorAlert"></div>
+
+  <form id="loginForm">
+    <div class="form-group">
+      <label for="email">Email Address</label>
+      <input type="email" id="email" placeholder="you@example.com" required autocomplete="email" />
+    </div>
+    <div class="form-group">
+      <label for="password">Password</label>
+      <input type="password" id="password" placeholder="••••••••" required autocomplete="current-password" />
+    </div>
+    <button type="submit" class="btn" id="submitBtn">Sign In</button>
+  </form>
+
+  <div class="divider">— or —</div>
+  <div class="register-link">
+    Don't have an account? <a href="/citizen/register.html">Create one free</a>
+  </div>
+</div>
+
+<script>
+const API = '';
+const form = document.getElementById('loginForm');
+const errorAlert = document.getElementById('errorAlert');
+const submitBtn = document.getElementById('submitBtn');
+
+// Redirect if already logged in as citizen
+const token = localStorage.getItem('token');
+const role = localStorage.getItem('role');
+if (token && role === 'citizen') window.location.href = '/citizen/dashboard.html';
+
+form.addEventListener('submit', async (e) => {
+  e.preventDefault();
+  errorAlert.style.display = 'none';
+  submitBtn.disabled = true;
+  submitBtn.innerHTML = '<span class="spinner"></span>Signing in...';
+
+  try {
+    const res = await fetch(API + '/citizen/login', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        email: document.getElementById('email').value,
+        password: document.getElementById('password').value
+      })
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.detail || 'Login failed');
+
+    localStorage.setItem('token', data.token);
+    localStorage.setItem('role', data.role);
+    localStorage.setItem('name', data.name);
+    localStorage.setItem('userId', data.id);
+    window.location.href = '/citizen/dashboard.html';
+  } catch (err) {
+    errorAlert.textContent = err.message;
+    errorAlert.style.display = 'block';
+    submitBtn.disabled = false;
+    submitBtn.textContent = 'Sign In';
+  }
+});
+</script>
+</body>
+</html>

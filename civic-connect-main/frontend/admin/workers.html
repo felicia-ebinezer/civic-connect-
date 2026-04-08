@@ -1,0 +1,109 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" /><meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Workers — Civic Connect Admin</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet" />
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  :root { --purple: #5b21b6; --bg: #f5f3ff; --white: #fff; --text: #1e293b; --muted: #64748b; --border: #e2e8f0; }
+  body { font-family: 'Inter', sans-serif; background: var(--bg); min-height: 100vh; }
+  nav { background: var(--purple); color: white; padding: 0.9rem 2rem; display: flex; align-items: center; justify-content: space-between; position: sticky; top: 0; z-index: 999; }
+  .nav-brand { display: flex; align-items: center; gap: 0.6rem; font-size: 1.1rem; font-weight: 800; text-decoration: none; color: white; }
+  .nav-links a { color: rgba(255,255,255,0.85); text-decoration: none; font-size: 0.88rem; font-weight: 500; margin-left: 1rem; }
+  .nav-links a.active, .nav-links a:hover { color: white; }
+  .main { max-width: 1100px; margin: 0 auto; padding: 2rem 1.5rem 4rem; }
+  .page-title { font-size: 1.5rem; font-weight: 800; color: var(--text); margin-bottom: 0.3rem; }
+  .page-sub { color: var(--muted); font-size: 0.92rem; margin-bottom: 2rem; }
+  .stats-row { display: grid; grid-template-columns: repeat(3, 1fr); gap: 1rem; margin-bottom: 2rem; }
+  .stat-card { background: var(--white); border-radius: 14px; padding: 1.25rem; border: 1px solid var(--border); text-align: center; }
+  .stat-value { font-size: 2rem; font-weight: 900; color: var(--purple); }
+  .stat-label { font-size: 0.75rem; font-weight: 700; text-transform: uppercase; color: var(--muted); margin-top: 0.2rem; }
+  .workers-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 1.25rem; }
+  .worker-card { background: var(--white); border-radius: 14px; padding: 1.5rem; border: 1px solid var(--border); box-shadow: 0 2px 8px rgba(0,0,0,0.04); border-top: 3px solid transparent; }
+  .worker-card.free { border-top-color: #10b981; }
+  .worker-card.busy { border-top-color: #f59e0b; }
+  .worker-card.off_duty { border-top-color: #94a3b8; opacity: 0.75; }
+  .worker-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 0.75rem; }
+  .worker-name { font-size: 1rem; font-weight: 800; color: var(--text); }
+  .status-badge { display: inline-flex; padding: 0.25rem 0.65rem; border-radius: 999px; font-size: 0.73rem; font-weight: 700; }
+  .status-free { background: #d1fae5; color: #064e3b; }
+  .status-busy { background: #fef9c3; color: #854d0e; }
+  .status-off_duty { background: #f1f5f9; color: var(--muted); }
+  .worker-dept { font-size: 0.82rem; font-weight: 600; color: var(--purple); margin-bottom: 0.4rem; }
+  .worker-info { font-size: 0.82rem; color: var(--muted); display: flex; flex-direction: column; gap: 0.25rem; }
+  .worker-stat { display: flex; justify-content: space-between; margin-top: 0.75rem; padding-top: 0.75rem; border-top: 1px solid var(--border); }
+  .ws-item { text-align: center; }
+  .ws-value { font-size: 1.1rem; font-weight: 800; color: var(--text); }
+  .ws-value.warn { color: #ef4444; }
+  .ws-label { font-size: 0.7rem; color: var(--muted); margin-top: 0.1rem; }
+</style>
+</head>
+<body>
+<nav>
+  <a href="/admin/dashboard.html" class="nav-brand">🏛️ Civic Connect <span style="font-size:0.7rem;background:rgba(255,255,255,0.2);padding:0.2rem 0.5rem;border-radius:6px;margin-left:0.4rem">ADMIN</span></a>
+  <div class="nav-links">
+    <a href="/admin/dashboard.html">Dashboard</a>
+    <a href="/admin/map.html">Map</a>
+    <a href="/admin/workers.html" class="active">Workers</a>
+    <a href="/admin/analytics.html">Analytics</a>
+  </div>
+</nav>
+
+<div class="main">
+  <div class="page-title">👷 Field Workers</div>
+  <p class="page-sub">Manage and monitor all field workers across departments</p>
+
+  <div class="stats-row" id="statsRow">
+    <div class="stat-card"><div class="stat-value" id="totalWorkers">—</div><div class="stat-label">Total Workers</div></div>
+    <div class="stat-card"><div class="stat-value" style="color:#10b981" id="freeWorkers">—</div><div class="stat-label">Available Now</div></div>
+    <div class="stat-card"><div class="stat-value" style="color:#f59e0b" id="busyWorkers">—</div><div class="stat-label">On Active Jobs</div></div>
+  </div>
+
+  <div class="workers-grid" id="workersGrid">
+    <div style="text-align:center;padding:3rem;color:var(--muted)">Loading workers...</div>
+  </div>
+</div>
+
+<script>
+const token = localStorage.getItem('token');
+const role = localStorage.getItem('role');
+if (!token || role !== 'admin') window.location.href = '/admin/login.html';
+
+async function load() {
+  const res = await fetch('/workers', { headers: { Authorization: 'Bearer ' + token } });
+  const workers = await res.json();
+
+  document.getElementById('totalWorkers').textContent = workers.length;
+  document.getElementById('freeWorkers').textContent = workers.filter(w => w.status === 'free').length;
+  document.getElementById('busyWorkers').textContent = workers.filter(w => w.status === 'busy').length;
+
+  const grid = document.getElementById('workersGrid');
+  grid.innerHTML = workers.map(w => `
+    <div class="worker-card ${w.status}">
+      <div class="worker-header">
+        <div class="worker-name">${w.name}</div>
+        <span class="status-badge status-${w.status}">${w.status === 'free' ? '✅ Available' : w.status === 'busy' ? '🔄 Busy' : '⛔ Off Duty'}</span>
+      </div>
+      <div class="worker-dept">🏢 ${w.department}</div>
+      <div class="worker-info">
+        ${w.phone ? `<span>📞 ${w.phone}</span>` : ''}
+      </div>
+      <div class="worker-stat">
+        <div class="ws-item">
+          <div class="ws-value ${w.active_job_count >= 3 ? 'warn' : ''}">${w.active_job_count}</div>
+          <div class="ws-label">Active Jobs ${w.active_job_count >= 3 ? '⚠️' : ''}</div>
+        </div>
+        <div class="ws-item">
+          <div class="ws-value">${w.avg_resolution_hours ? w.avg_resolution_hours + 'h' : '—'}</div>
+          <div class="ws-label">Avg Resolution</div>
+        </div>
+      </div>
+    </div>
+  `).join('');
+}
+
+load();
+</script>
+</body>
+</html>

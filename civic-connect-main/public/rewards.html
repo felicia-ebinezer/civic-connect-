@@ -1,0 +1,228 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Rewards — Civic Connect</title>
+  <link rel="stylesheet" href="/css/style.css">
+  <style>
+    .rewards-hero { background:linear-gradient(135deg,#F59E0B,#EF4444); color:white; border-radius:var(--radius-lg); padding:2rem; margin-bottom:2rem; display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:1rem; }
+    .rewards-hero h1 { font-size:1.5rem; }
+    .rewards-hero .balance { text-align:right; }
+    .rewards-hero .balance .value { font-size:2.5rem; font-weight:800; }
+    .rewards-hero .balance .label { font-size:0.85rem; opacity:0.9; }
+
+    .rewards-grid { display:grid; grid-template-columns:repeat(auto-fill, minmax(300px,1fr)); gap:1.25rem; margin-bottom:2rem; }
+
+    .reward-card { background:var(--bg-card); border-radius:var(--radius-lg); border:1px solid var(--border); overflow:hidden; transition:var(--transition); position:relative; }
+    .reward-card:hover { transform:translateY(-4px); box-shadow:var(--shadow-xl); }
+    .reward-card.locked { opacity:0.6; }
+    .reward-card.locked::after { content:'🔒 Level Required'; position:absolute; top:12px; right:12px; background:var(--bg); padding:4px 10px; border-radius:20px; font-size:0.7rem; font-weight:600; color:var(--text-secondary); }
+
+    .reward-icon { height:120px; display:flex; align-items:center; justify-content:center; font-size:3.5rem; }
+    .reward-icon.bus { background:linear-gradient(135deg,#DBEAFE,#EFF6FF); }
+    .reward-icon.voucher { background:linear-gradient(135deg,#D1FAE5,#ECFDF5); }
+    .reward-icon.gift { background:linear-gradient(135deg,#FEF3C7,#FFFBEB); }
+
+    .reward-body { padding:1.25rem; }
+    .reward-name { font-size:1.1rem; font-weight:700; margin-bottom:4px; }
+    .reward-desc { font-size:0.85rem; color:var(--text-secondary); margin-bottom:12px; }
+    .reward-meta { display:flex; justify-content:space-between; align-items:center; margin-bottom:12px; }
+    .reward-cost { font-size:1.2rem; font-weight:800; color:var(--primary); }
+    .reward-level { font-size:0.75rem; color:var(--text-secondary); }
+
+    .vouchers-section h2 { margin-bottom:1rem; }
+    .voucher-card { background:var(--bg-card); border-radius:var(--radius-lg); border:1px solid var(--border); padding:1.5rem; display:flex; justify-content:space-between; align-items:center; margin-bottom:10px; transition:var(--transition); }
+    .voucher-card:hover { box-shadow:var(--shadow); }
+    .voucher-card.expired { opacity:0.5; background:#FAFAFA; }
+    .voucher-code { font-family:monospace; font-size:1.1rem; font-weight:700; background:var(--bg); padding:6px 14px; border-radius:8px; letter-spacing:2px; }
+    .voucher-expires { font-size:0.8rem; color:var(--text-secondary); }
+    .voucher-name { font-weight:600; }
+  </style>
+</head>
+<body>
+  <nav class="navbar">
+    <div class="navbar-brand"><div class="icon">🏛️</div><span>Civic Connect</span></div>
+    <div class="navbar-right">
+      <a href="/citizen" class="btn btn-ghost btn-sm">Dashboard</a>
+      <a href="/track" class="btn btn-ghost btn-sm">Track</a>
+      <a href="/profile" class="btn btn-ghost btn-sm">Profile</a>
+      <button class="btn btn-ghost btn-sm" onclick="logout()">Logout</button>
+    </div>
+  </nav>
+
+  <div class="dashboard">
+    <!-- Hero -->
+    <div class="rewards-hero">
+      <div>
+        <h1>🎁 Rewards Store</h1>
+        <p style="opacity:0.85">Redeem your hard-earned points for real rewards!</p>
+      </div>
+      <div class="balance">
+        <div class="value" id="pointsBalance">0</div>
+        <div class="label">Points Available</div>
+      </div>
+    </div>
+
+    <!-- Rewards Grid -->
+    <h2 style="margin-bottom:1rem">Available Rewards</h2>
+    <div class="rewards-grid" id="rewardsGrid"></div>
+
+    <!-- My Vouchers -->
+    <div class="vouchers-section">
+      <h2>🎫 My Vouchers</h2>
+      <div id="vouchersList"></div>
+    </div>
+  </div>
+
+  <!-- Redeem Modal -->
+  <div class="modal-overlay" id="redeemModal">
+    <div class="modal" style="max-width:450px">
+      <div class="modal-header">
+        <h3>Confirm Redemption</h3>
+        <button class="modal-close" onclick="closeModal()">&times;</button>
+      </div>
+      <div class="modal-body" id="redeemBody" style="text-align:center;padding:2rem"></div>
+      <div class="modal-footer">
+        <button class="btn btn-outline" onclick="closeModal()">Cancel</button>
+        <button class="btn btn-primary" id="confirmBtn" onclick="confirmRedeem()">Confirm</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="toast-container" id="toastContainer"></div>
+
+  <script>
+    const API = '';
+    const token = localStorage.getItem('token');
+    const user = JSON.parse(localStorage.getItem('user') || 'null');
+    if (!token || !user || user.role !== 'citizen') { localStorage.clear(); window.location.href = '/'; }
+
+    let userPoints = 0;
+    let userLevel = 1;
+    let selectedReward = null;
+
+    function logout() { localStorage.clear(); window.location.href = '/'; }
+    function showToast(msg, type='info') {
+      const t = document.createElement('div'); t.className = `toast toast-${type}`; t.textContent = msg;
+      document.getElementById('toastContainer').appendChild(t); setTimeout(() => t.remove(), 3000);
+    }
+
+    async function loadData() {
+      // Load profile for points
+      const profileRes = await fetch(API + '/api/profile', { headers: { 'Authorization': 'Bearer ' + token } });
+      const profile = await profileRes.json();
+      userPoints = profile.points;
+      userLevel = profile.level.level;
+      document.getElementById('pointsBalance').textContent = userPoints;
+
+      // Load rewards
+      const rewardsRes = await fetch(API + '/api/rewards', { headers: { 'Authorization': 'Bearer ' + token } });
+      const rewards = await rewardsRes.json();
+      renderRewards(rewards);
+
+      // Load vouchers
+      const vouchersRes = await fetch(API + '/api/vouchers', { headers: { 'Authorization': 'Bearer ' + token } });
+      const vouchers = await vouchersRes.json();
+      renderVouchers(vouchers);
+    }
+
+    function renderRewards(rewards) {
+      const grid = document.getElementById('rewardsGrid');
+      const icons = { 'bus_pass': '🚌', 'voucher': '☕', 'gift_card': '🎁' };
+      const iconBg = { 'bus_pass': 'bus', 'voucher': 'voucher', 'gift_card': 'gift' };
+
+      grid.innerHTML = rewards.map(r => {
+        const locked = userLevel < r.minLevel;
+        const cantAfford = userPoints < r.cost;
+
+        return `
+          <div class="reward-card ${locked ? 'locked' : ''}">
+            <div class="reward-icon ${iconBg[r.type] || 'bus'}">
+              ${icons[r.type] || '🎁'}
+            </div>
+            <div class="reward-body">
+              <div class="reward-name">${r.name}</div>
+              <div class="reward-desc">${r.description}</div>
+              <div class="reward-meta">
+                <div class="reward-cost">${r.cost} pts</div>
+                <div class="reward-level">Level ${r.minLevel}+</div>
+              </div>
+              <button class="btn ${locked || cantAfford ? 'btn-outline' : 'btn-primary'} btn-block"
+                ${locked || cantAfford ? 'disabled' : ''}
+                onclick="openRedeem('${r.id}', '${r.name}', ${r.cost})">
+                ${locked ? '🔒 Unlock at Level ' + r.minLevel : cantAfford ? 'Need ' + (r.cost - userPoints) + ' more pts' : '🎁 Redeem'}
+              </button>
+            </div>
+          </div>`;
+      }).join('');
+    }
+
+    function renderVouchers(vouchers) {
+      const list = document.getElementById('vouchersList');
+      if (vouchers.length === 0) {
+        list.innerHTML = '<div class="empty-state" style="padding:2rem"><div class="empty-icon">🎫</div><h3>No vouchers yet</h3><p>Redeem rewards above to get vouchers!</p></div>';
+        return;
+      }
+
+      list.innerHTML = vouchers.map(v => {
+        const expires = new Date(v.expiresAt);
+        const isExpired = expires < new Date();
+        const timeLeft = isExpired ? 'Expired' : `Expires: ${expires.toLocaleDateString('en-IN', {day:'numeric',month:'short',year:'numeric'})}`;
+
+        return `
+          <div class="voucher-card ${isExpired ? 'expired' : ''}">
+            <div>
+              <div class="voucher-name">${v.rewardName}</div>
+              <div class="voucher-expires">${timeLeft}</div>
+            </div>
+            <div class="voucher-code">${v.code}</div>
+          </div>`;
+      }).join('');
+    }
+
+    function openRedeem(id, name, cost) {
+      selectedReward = id;
+      document.getElementById('redeemBody').innerHTML = `
+        <div style="font-size:3rem;margin-bottom:1rem">🎁</div>
+        <h3 style="margin-bottom:6px">${name}</h3>
+        <p style="color:var(--text-secondary)">This will deduct <strong>${cost} points</strong> from your balance.</p>
+        <p style="margin-top:12px;font-size:0.85rem">Current balance: <strong>${userPoints} pts</strong> → <strong>${userPoints - cost} pts</strong></p>
+      `;
+      document.getElementById('redeemModal').classList.add('active');
+    }
+
+    function closeModal() {
+      document.getElementById('redeemModal').classList.remove('active');
+      selectedReward = null;
+    }
+
+    async function confirmRedeem() {
+      if (!selectedReward) return;
+      const btn = document.getElementById('confirmBtn');
+      btn.innerHTML = '<span class="spinner"></span>';
+      btn.disabled = true;
+
+      try {
+        const res = await fetch(API + '/api/rewards/redeem', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + token },
+          body: JSON.stringify({ rewardId: selectedReward })
+        });
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.error);
+
+        showToast(`Redeemed! Voucher code: ${data.voucher.code}`, 'success');
+        closeModal();
+        loadData();
+      } catch (err) {
+        showToast(err.message, 'error');
+        btn.innerHTML = 'Confirm';
+        btn.disabled = false;
+      }
+    }
+
+    loadData();
+  </script>
+</body>
+</html>

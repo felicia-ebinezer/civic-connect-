@@ -1,0 +1,258 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Track Complaint — Civic Connect</title>
+  <link rel="stylesheet" href="/css/style.css">
+  <style>
+    .back-link { display:inline-flex; align-items:center; gap:6px; color:var(--primary); font-weight:600; font-size:0.9rem; margin-bottom:1.5rem; cursor:pointer; }
+    .back-link:hover { text-decoration:underline; }
+
+    .track-hero { background:linear-gradient(135deg,var(--primary),var(--accent)); color:white; border-radius:var(--radius-lg); padding:2rem; margin-bottom:2rem; }
+    .track-hero h2 { font-size:1.5rem; margin-bottom:4px; }
+    .track-hero .meta { display:flex; gap:1rem; flex-wrap:wrap; margin-top:12px; font-size:0.85rem; opacity:0.9; }
+
+    .pipeline { position:relative; padding:2rem 0; }
+    .pipeline-line { position:absolute; left:27px; top:0; bottom:0; width:4px; background:var(--border); border-radius:2px; }
+    .pipeline-fill { position:absolute; left:27px; top:0; width:4px; background:linear-gradient(180deg,var(--primary),var(--success)); border-radius:2px; transition:height 0.8s ease; }
+
+    .stage-item { display:flex; align-items:flex-start; gap:1.25rem; margin-bottom:2rem; position:relative; z-index:1; }
+    .stage-dot { width:56px; height:56px; border-radius:50%; display:flex; align-items:center; justify-content:center; font-size:1.5rem; flex-shrink:0; transition:var(--transition); border:4px solid white; box-shadow:var(--shadow); }
+    .stage-dot.completed { background:var(--success); }
+    .stage-dot.current { background:var(--primary); animation:pulse 2s infinite; }
+    .stage-dot.upcoming { background:var(--bg); border-color:var(--border); }
+
+    @keyframes pulse { 0%,100%{box-shadow:0 0 0 0 rgba(37,99,235,0.4)} 50%{box-shadow:0 0 0 12px rgba(37,99,235,0)} }
+
+    .stage-content { flex:1; background:var(--bg-card); border-radius:var(--radius); padding:1rem 1.25rem; border:1px solid var(--border); transition:var(--transition); }
+    .stage-content.active { border-color:var(--primary); box-shadow:0 0 0 3px rgba(37,99,235,0.1); }
+    .stage-name { font-weight:700; font-size:1rem; margin-bottom:2px; }
+    .stage-desc { font-size:0.85rem; color:var(--text-secondary); }
+    .stage-time { font-size:0.75rem; color:var(--text-secondary); margin-top:6px; display:flex; align-items:center; gap:4px; }
+    .stage-time.waiting { color:var(--warning); font-style:italic; }
+
+    .progress-bar-container { background:var(--bg); border-radius:20px; height:12px; margin:1.5rem 0; overflow:hidden; }
+    .progress-bar-fill { height:100%; border-radius:20px; background:linear-gradient(90deg,var(--primary),var(--success)); transition:width 1s ease; }
+
+    .upvote-btn { display:inline-flex; align-items:center; gap:6px; padding:8px 16px; border:2px solid var(--border); border-radius:var(--radius); background:white; font-weight:600; font-size:0.9rem; cursor:pointer; transition:var(--transition); }
+    .upvote-btn:hover { border-color:var(--primary); color:var(--primary); background:rgba(37,99,235,0.05); }
+    .upvote-btn.voted { border-color:var(--primary); color:var(--primary); background:rgba(37,99,235,0.05); }
+
+    .complaint-select { margin-bottom:2rem; }
+    .complaint-option { padding:1rem; border:2px solid var(--border); border-radius:var(--radius); margin-bottom:8px; cursor:pointer; transition:var(--transition); display:flex; justify-content:space-between; align-items:center; }
+    .complaint-option:hover { border-color:var(--primary); }
+    .complaint-option.selected { border-color:var(--primary); background:rgba(37,99,235,0.05); }
+    .complaint-option .title { font-weight:600; }
+    .complaint-option .info { font-size:0.8rem; color:var(--text-secondary); }
+  </style>
+</head>
+<body>
+  <nav class="navbar">
+    <div class="navbar-brand"><div class="icon">🏛️</div><span>Civic Connect</span></div>
+    <div class="navbar-right">
+      <a href="/citizen" class="btn btn-ghost btn-sm">Dashboard</a>
+      <a href="/profile" class="btn btn-ghost btn-sm">Profile</a>
+      <a href="/rewards" class="btn btn-ghost btn-sm">Rewards</a>
+      <button class="btn btn-ghost btn-sm" onclick="logout()">Logout</button>
+    </div>
+  </nav>
+
+  <div class="dashboard">
+    <a class="back-link" href="/citizen">← Back to Dashboard</a>
+
+    <!-- Complaint Selector -->
+    <div id="selectView">
+      <h1 style="margin-bottom:1rem">🔄 Track Your Complaints</h1>
+      <p style="color:var(--text-secondary);margin-bottom:1.5rem">Select a complaint to view its progress through the 7-stage pipeline</p>
+      <div id="complaintsList"></div>
+    </div>
+
+    <!-- Track View -->
+    <div id="trackView" style="display:none">
+      <a class="back-link" onclick="showSelector()">← Select Different Complaint</a>
+
+      <div class="track-hero" id="trackHero"></div>
+
+      <div class="card">
+        <div class="card-header">
+          <h3>📊 Resolution Progress</h3>
+          <span id="progressText" style="font-weight:700;color:var(--primary)">0%</span>
+        </div>
+        <div class="card-body">
+          <div class="progress-bar-container">
+            <div class="progress-bar-fill" id="progressBar" style="width:0%"></div>
+          </div>
+        </div>
+      </div>
+
+      <div style="margin:2rem 0">
+        <h3 style="margin-bottom:1rem">🔄 Resolution Pipeline</h3>
+        <div class="pipeline" id="pipeline">
+          <div class="pipeline-line"></div>
+          <div class="pipeline-fill" id="pipelineFill"></div>
+        </div>
+      </div>
+
+      <div style="display:flex;gap:1rem;flex-wrap:wrap;align-items:center">
+        <button class="upvote-btn" id="upvoteBtn" onclick="upvote()">
+          👍 Upvote <span id="upvoteCount">0</span>
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <div class="toast-container" id="toastContainer"></div>
+
+  <script>
+    const API = '';
+    const token = localStorage.getItem('token');
+    const user = JSON.parse(localStorage.getItem('user') || 'null');
+    if (!token || !user || user.role !== 'citizen') { localStorage.clear(); window.location.href = '/'; }
+
+    let selectedComplaint = null;
+    function logout() { localStorage.clear(); window.location.href = '/'; }
+    function showToast(msg, type='info') {
+      const t = document.createElement('div'); t.className = `toast toast-${type}`; t.textContent = msg;
+      document.getElementById('toastContainer').appendChild(t); setTimeout(() => t.remove(), 3000);
+    }
+
+    async function loadComplaints() {
+      const res = await fetch(API + '/api/complaints/my', { headers: { 'Authorization': 'Bearer ' + token } });
+      const complaints = await res.json();
+
+      const list = document.getElementById('complaintsList');
+      if (complaints.length === 0) {
+        list.innerHTML = '<div class="empty-state"><div class="empty-icon">📭</div><h3>No complaints yet</h3><p>Submit a complaint first to track it here</p></div>';
+        return;
+      }
+
+      list.innerHTML = complaints.map(c => {
+        const statusClass = c.status === 'Pending' ? 'badge-pending' : c.status === 'In Progress' ? 'badge-progress' : 'badge-resolved';
+        const priorityClass = c.priority === 'High' ? 'badge-high' : c.priority === 'Medium' ? 'badge-medium' : 'badge-low';
+        return `
+          <div class="complaint-option" onclick="selectComplaint('${c._id}')">
+            <div>
+              <div class="title">${c.title}</div>
+              <div class="info">📍 ${c.location} • ${c.category} • Stage ${c.stage || 0}/6</div>
+            </div>
+            <div style="display:flex;gap:6px">
+              <span class="badge ${statusClass}">${c.status}</span>
+              <span class="badge ${priorityClass}">${c.priority}</span>
+            </div>
+          </div>`;
+      }).join('');
+
+      // Auto-select from URL param
+      const urlId = new URLSearchParams(window.location.search).get('id');
+      if (urlId) selectComplaint(urlId);
+    }
+
+    async function selectComplaint(id) {
+      try {
+        const res = await fetch(API + `/api/complaints/${id}`, { headers: { 'Authorization': 'Bearer ' + token } });
+        if (!res.ok) throw new Error('Not found');
+        selectedComplaint = await res.json();
+        renderTracker();
+      } catch (err) {
+        showToast('Failed to load complaint', 'error');
+      }
+    }
+
+    function showSelector() {
+      document.getElementById('selectView').style.display = 'block';
+      document.getElementById('trackView').style.display = 'none';
+    }
+
+    function renderTracker() {
+      const c = selectedComplaint;
+      document.getElementById('selectView').style.display = 'none';
+      document.getElementById('trackView').style.display = 'block';
+
+      const priorityClass = c.priority === 'High' ? 'badge-high' : c.priority === 'Medium' ? 'badge-medium' : 'badge-low';
+      const date = new Date(c.createdAt).toLocaleDateString('en-IN', { day:'numeric', month:'long', year:'numeric' });
+
+      document.getElementById('trackHero').innerHTML = `
+        <h2>${c.title}</h2>
+        <p style="opacity:0.85;margin-top:4px">${c.description}</p>
+        <div class="meta">
+          <span>📍 ${c.location}</span>
+          <span>📂 ${c.category}</span>
+          <span>🏢 ${c.department}</span>
+          <span>📅 ${date}</span>
+          <span class="badge ${priorityClass}">${c.priority} Priority</span>
+        </div>
+      `;
+
+      // Progress bar
+      const progress = Math.round((c.stage / 6) * 100);
+      document.getElementById('progressBar').style.width = progress + '%';
+      document.getElementById('progressText').textContent = progress + '%';
+
+      // Upvotes
+      document.getElementById('upvoteCount').textContent = c.upvotes || 0;
+
+      // Pipeline stages
+      const stages = c.stages || [];
+      const stageHistory = c.stageHistory || [];
+      const pipeline = document.getElementById('pipeline');
+
+      // Calculate pipeline fill height
+      const fillPercent = stages.length > 0 ? (c.stage / (stages.length - 1)) * 100 : 0;
+      document.getElementById('pipelineFill').style.height = Math.min(fillPercent, 100) + '%';
+
+      let stagesHtml = '';
+      stages.forEach((s, i) => {
+        const historyEntry = stageHistory.find(h => h.stage === i);
+        const isCompleted = i < c.stage;
+        const isCurrent = i === c.stage;
+        const isUpcoming = i > c.stage;
+
+        const dotClass = isCompleted ? 'completed' : isCurrent ? 'current' : 'upcoming';
+        const contentClass = isCurrent ? 'active' : '';
+        const icon = isCompleted ? '✅' : s.icon;
+
+        let timeHtml = '';
+        if (historyEntry) {
+          const t = new Date(historyEntry.timestamp);
+          timeHtml = `<div class="stage-time">🕐 ${t.toLocaleDateString('en-IN', {day:'numeric',month:'short'})} at ${t.toLocaleTimeString('en-IN', {hour:'2-digit',minute:'2-digit'})}</div>`;
+        } else if (isCurrent) {
+          timeHtml = '<div class="stage-time waiting">⏳ In progress...</div>';
+        } else {
+          timeHtml = '<div class="stage-time" style="opacity:0.4">— Waiting</div>';
+        }
+
+        stagesHtml += `
+          <div class="stage-item">
+            <div class="stage-dot ${dotClass}">${icon}</div>
+            <div class="stage-content ${contentClass}">
+              <div class="stage-name">${s.name}</div>
+              <div class="stage-desc">${s.description}</div>
+              ${timeHtml}
+            </div>
+          </div>`;
+      });
+
+      // Remove old stage items
+      pipeline.querySelectorAll('.stage-item').forEach(e => e.remove());
+      pipeline.insertAdjacentHTML('beforeend', stagesHtml);
+    }
+
+    async function upvote() {
+      if (!selectedComplaint) return;
+      try {
+        const res = await fetch(API + `/api/complaints/${selectedComplaint._id}/upvote`, {
+          method: 'POST',
+          headers: { 'Authorization': 'Bearer ' + token }
+        });
+        const data = await res.json();
+        document.getElementById('upvoteCount').textContent = data.upvotes;
+        document.getElementById('upvoteBtn').classList.add('voted');
+        showToast('Upvoted! 👍', 'success');
+      } catch (err) { showToast('Failed to upvote', 'error'); }
+    }
+
+    loadComplaints();
+  </script>
+</body>
+</html>

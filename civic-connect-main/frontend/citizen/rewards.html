@@ -1,0 +1,212 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" /><meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Rewards Store — Civic Connect</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet" />
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  :root { --blue: #1D4ED8; --bg: #EFF6FF; --white: #fff; --text: #1e293b; --muted: #64748b; --border: #e2e8f0; }
+  body { font-family: 'Inter', sans-serif; background: var(--bg); min-height: 100vh; }
+  nav { background: var(--blue); color: white; padding: 0.9rem 2rem; display: flex; align-items: center; justify-content: space-between; position: sticky; top: 0; z-index: 999; }
+  .nav-brand { display: flex; align-items: center; gap: 0.6rem; font-size: 1.1rem; font-weight: 800; text-decoration: none; color: white; }
+  .nav-links a { color: rgba(255,255,255,0.85); text-decoration: none; font-size: 0.88rem; font-weight: 500; margin-left: 1rem; }
+  .nav-links a.active, .nav-links a:hover { color: white; }
+  .main { max-width: 820px; margin: 2rem auto; padding: 0 1.5rem 4rem; }
+  .page-title { font-size: 1.6rem; font-weight: 800; color: var(--text); margin-bottom: 0.4rem; }
+  .page-sub { color: var(--muted); margin-bottom: 2rem; }
+  /* POINTS BAR */
+  .points-bar { background: var(--white); border-radius: 14px; padding: 1.25rem 1.75rem; border: 1px solid var(--border); display: flex; align-items: center; gap: 1.5rem; margin-bottom: 2rem; }
+  .pts-value { font-size: 2rem; font-weight: 900; color: var(--blue); }
+  .pts-label { font-size: 0.82rem; color: var(--muted); font-weight: 600; text-transform: uppercase; margin-top: 0.1rem; }
+  .pts-level { background: linear-gradient(135deg, #1D4ED8, #3B82F6); color: white; border-radius: 8px; padding: 0.35rem 0.85rem; font-size: 0.82rem; font-weight: 700; margin-left: auto; }
+  /* REWARD CARDS */
+  .rewards-grid { display: flex; flex-direction: column; gap: 1.25rem; }
+  .reward-card { background: var(--white); border-radius: 18px; padding: 1.75rem; border: 1px solid var(--border); box-shadow: 0 2px 12px rgba(0,0,0,0.05); display: flex; align-items: center; gap: 1.5rem; transition: all 0.2s; }
+  .reward-card:hover { box-shadow: 0 8px 32px rgba(29,78,216,0.12); border-color: #bfdbfe; }
+  .reward-card.locked { opacity: 0.6; }
+  .reward-icon { font-size: 3rem; width: 72px; height: 72px; background: #eff6ff; border-radius: 16px; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+  .reward-info { flex: 1; }
+  .reward-name { font-size: 1.15rem; font-weight: 800; color: var(--text); margin-bottom: 0.3rem; }
+  .reward-desc { font-size: 0.88rem; color: var(--muted); line-height: 1.5; margin-bottom: 0.75rem; }
+  .reward-meta { display: flex; gap: 0.6rem; flex-wrap: wrap; align-items: center; }
+  .tag { padding: 0.25rem 0.7rem; border-radius: 999px; font-size: 0.75rem; font-weight: 700; }
+  .tag-cost { background: #eff6ff; color: var(--blue); }
+  .tag-level { background: #f0fdf4; color: #166534; }
+  .tag-locked { background: #fef2f2; color: #991b1b; }
+  .redeem-btn { background: linear-gradient(135deg, #1D4ED8, #3B82F6); color: white; border: none; border-radius: 12px; padding: 0.75rem 1.5rem; font-size: 0.9rem; font-weight: 700; cursor: pointer; white-space: nowrap; box-shadow: 0 4px 12px rgba(29,78,216,0.3); transition: all 0.2s; flex-shrink: 0; }
+  .redeem-btn:hover { transform: translateY(-2px); box-shadow: 0 8px 20px rgba(29,78,216,0.4); }
+  .redeem-btn:disabled { opacity: 0.5; transform: none; cursor: not-allowed; }
+  /* TOAST */
+  .toast { position: fixed; bottom: 1.5rem; right: 1.5rem; background: #1e293b; color: white; padding: 1rem 1.5rem; border-radius: 14px; font-size: 0.9rem; font-weight: 500; z-index: 9999; transform: translateY(100px); opacity: 0; transition: all 0.35s ease; max-width: 350px; box-shadow: 0 8px 32px rgba(0,0,0,0.25); }
+  .toast.show { transform: translateY(0); opacity: 1; }
+  .toast.success { background: linear-gradient(135deg, #064e3b, #10b981); }
+  .toast.error { background: linear-gradient(135deg, #7f1d1d, #ef4444); }
+  /* MODAL */
+  .modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.5); z-index: 9000; display: flex; align-items: center; justify-content: center; padding: 1rem; display: none; }
+  .modal-overlay.show { display: flex; animation: fadeIn 0.25s ease; }
+  @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+  .modal { background: white; border-radius: 20px; padding: 2rem; max-width: 420px; width: 100%; text-align: center; }
+  .modal h2 { font-size: 1.4rem; font-weight: 800; margin-bottom: 0.5rem; }
+  .modal p { color: var(--muted); font-size: 0.9rem; margin-bottom: 1.5rem; }
+  .modal-close { background: var(--blue); color: white; border: none; border-radius: 12px; padding: 0.75rem 2rem; font-size: 0.95rem; font-weight: 700; cursor: pointer; width: 100%; }
+  .spinner { display: inline-block; width: 18px; height: 18px; border: 2px solid rgba(255,255,255,0.4); border-top-color: white; border-radius: 50%; animation: spin 0.6s linear infinite; vertical-align: middle; }
+  @keyframes spin { to { transform: rotate(360deg); } }
+</style>
+</head>
+<body>
+<nav>
+  <a href="/citizen/dashboard.html" class="nav-brand">🏛️ Civic Connect</a>
+  <div class="nav-links">
+    <a href="/citizen/dashboard.html">Dashboard</a>
+    <a href="/citizen/report.html">Report</a>
+    <a href="/citizen/profile.html">Profile</a>
+    <a href="/citizen/rewards.html" class="active">Rewards 🎁</a>
+    <a href="/citizen/vouchers.html">Vouchers</a>
+  </div>
+</nav>
+
+<div class="main">
+  <div class="page-title">🎁 Rewards Store</div>
+  <p class="page-sub">Redeem your points for exclusive civic perks</p>
+
+  <div class="points-bar">
+    <div>
+      <div class="pts-value" id="ptsValue">—</div>
+      <div class="pts-label">Available Points</div>
+    </div>
+    <div class="pts-level" id="ptsLevel">Bronze</div>
+  </div>
+
+  <div class="rewards-grid" id="rewardsGrid">
+    <div style="text-align:center;padding:3rem;color:var(--muted);">Loading rewards...</div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<div class="modal-overlay" id="successModal">
+  <div class="modal">
+    <div style="font-size:3rem;margin-bottom:0.75rem" id="modalIcon">🎉</div>
+    <h2 id="modalTitle">Success!</h2>
+    <p id="modalMsg"></p>
+    <div id="qrContainer" style="margin:1rem 0;display:none">
+      <canvas id="qrCanvas" style="border:1px solid #e2e8f0;border-radius:8px;padding:0.5rem"></canvas>
+    </div>
+    <button class="modal-close" onclick="closeModal()">Continue</button>
+  </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/qrcodejs/qrcode.min.js"></script>
+<script>
+const token = localStorage.getItem('token');
+const role = localStorage.getItem('role');
+if (!token || role !== 'citizen') window.location.href = '/citizen/login.html';
+
+let profile = null;
+
+const LEVEL_ORDER = { Bronze: 0, Silver: 1, Gold: 2, Diamond: 3 };
+
+async function load() {
+  const [rewardsRes, profileRes] = await Promise.all([
+    fetch('/rewards/store', { headers: { Authorization: 'Bearer ' + token } }),
+    fetch('/citizen/profile', { headers: { Authorization: 'Bearer ' + token } })
+  ]);
+  const rewards = await rewardsRes.json();
+  profile = await profileRes.json();
+
+  document.getElementById('ptsValue').textContent = profile.points + ' pts';
+  document.getElementById('ptsLevel').textContent = { Bronze: '🥉', Silver: '🥈', Gold: '🥇', Diamond: '💎' }[profile.level] + ' ' + profile.level;
+
+  renderRewards(rewards);
+}
+
+function renderRewards(rewards) {
+  const grid = document.getElementById('rewardsGrid');
+  grid.innerHTML = rewards.map(r => {
+    const canAfford = profile.points >= r.cost;
+    const meetsLevel = LEVEL_ORDER[profile.level] >= LEVEL_ORDER[r.level_required];
+    const canRedeem = canAfford && meetsLevel;
+    const locked = !meetsLevel;
+    return `
+      <div class="reward-card ${locked ? 'locked' : ''}">
+        <div class="reward-icon">${r.icon}</div>
+        <div class="reward-info">
+          <div class="reward-name">${r.name}</div>
+          <div class="reward-desc">${r.description}</div>
+          <div class="reward-meta">
+            <span class="tag tag-cost">💎 ${r.cost} points</span>
+            <span class="tag tag-level">Requires ${r.level_required}</span>
+            ${locked ? `<span class="tag tag-locked">🔒 Locked — Reach ${r.level_required}</span>` : ''}
+            ${!canAfford && !locked ? '<span class="tag tag-locked">Not enough points</span>' : ''}
+          </div>
+        </div>
+        <button class="redeem-btn" ${canRedeem ? '' : 'disabled'} onclick="redeem('${r.id}', '${r.name}', this)">
+          ${canRedeem ? 'Redeem' : locked ? '🔒 Locked' : 'Need More Points'}
+        </button>
+      </div>
+    `;
+  }).join('');
+}
+
+async function redeem(rewardId, rewardName, btn) {
+  btn.disabled = true;
+  btn.innerHTML = '<span class="spinner"></span>';
+  try {
+    const res = await fetch(`/rewards/redeem/${rewardId}`, {
+      method: 'POST',
+      headers: { Authorization: 'Bearer ' + token }
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.detail || 'Redemption failed');
+
+    // Refresh profile data
+    const pr = await fetch('/citizen/profile', { headers: { Authorization: 'Bearer ' + token } });
+    profile = await pr.json();
+    document.getElementById('ptsValue').textContent = profile.points + ' pts';
+
+    // Show success modal
+    document.getElementById('modalIcon').textContent = rewardId === 'priority_boost' ? '🚀' : '🎫';
+    document.getElementById('modalTitle').textContent = rewardName + ' Redeemed!';
+    document.getElementById('modalMsg').textContent = data.message || 'Redemption successful!';
+
+    const qrContainer = document.getElementById('qrContainer');
+    if (data.voucher) {
+      qrContainer.style.display = 'block';
+      document.getElementById('qrCanvas').innerHTML = '';
+      new QRCode(document.getElementById('qrCanvas'), {
+        text: data.voucher.qr_code,
+        width: 180, height: 180,
+        colorDark: '#1D4ED8', colorLight: '#ffffff',
+        correctLevel: QRCode.CorrectLevel.H
+      });
+    } else {
+      qrContainer.style.display = 'none';
+    }
+
+    document.getElementById('successModal').classList.add('show');
+    btn.textContent = '✅ Redeemed';
+  } catch (err) {
+    showToast(err.message, 'error');
+    btn.disabled = false;
+    btn.textContent = 'Redeem';
+  }
+}
+
+function closeModal() {
+  document.getElementById('successModal').classList.remove('show');
+  load();
+}
+
+function showToast(msg, type = '') {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.className = 'toast ' + type;
+  t.classList.add('show');
+  setTimeout(() => t.classList.remove('show'), 4000);
+}
+
+load();
+</script>
+</body>
+</html>

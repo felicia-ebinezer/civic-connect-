@@ -1,0 +1,369 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" /><meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Complaint Detail — Civic Connect Admin</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet" />
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  :root { --purple: #5b21b6; --bg: #f5f3ff; --white: #fff; --text: #1e293b; --muted: #64748b; --border: #e2e8f0; --blue: #1D4ED8; }
+  body { font-family: 'Inter', sans-serif; background: var(--bg); min-height: 100vh; }
+  nav { background: var(--purple); color: white; padding: 0.9rem 2rem; display: flex; align-items: center; justify-content: space-between; position: sticky; top: 0; z-index: 999; }
+  .nav-brand { display: flex; align-items: center; gap: 0.6rem; font-size: 1.1rem; font-weight: 800; text-decoration: none; color: white; }
+  .nav-links a { color: rgba(255,255,255,0.85); text-decoration: none; font-size: 0.88rem; font-weight: 500; margin-left: 1rem; }
+  .nav-links a:hover { color: white; }
+  .back-link { display: inline-flex; align-items: center; gap: 0.4rem; color: var(--purple); text-decoration: none; font-size: 0.88rem; font-weight: 600; margin-bottom: 1.5rem; }
+  .back-link:hover { text-decoration: underline; }
+  .main { max-width: 1100px; margin: 0 auto; padding: 2rem 1.5rem 4rem; }
+  .two-col { display: grid; grid-template-columns: 1fr 380px; gap: 1.5rem; }
+  .section { background: var(--white); border-radius: 16px; padding: 1.5rem; border: 1px solid var(--border); box-shadow: 0 2px 8px rgba(0,0,0,0.04); margin-bottom: 1.25rem; }
+  .section-title { font-size: 0.85rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; color: var(--muted); margin-bottom: 1.25rem; }
+  .badge { display: inline-flex; align-items: center; padding: 0.25rem 0.65rem; border-radius: 999px; font-size: 0.75rem; font-weight: 700; }
+  .badge-pending { background: #f1f5f9; color: var(--muted); }
+  .badge-in_progress { background: #fef9c3; color: #854d0e; }
+  .badge-resolved { background: #d1fae5; color: #064e3b; }
+  .badge-high { background: #fef3c7; color: #92400e; }
+  .badge-critical { background: #fee2e2; color: #991b1b; }
+  .badge-medium { background: #fff7ed; color: #9a3412; }
+  .badge-low { background: #f0fdf4; color: #166534; }
+  /* PIPELINE */
+  .stage { display: flex; gap: 1rem; margin-bottom: 1rem; position: relative; }
+  .stage:not(:last-child)::after { content:''; position: absolute; left: 19px; top: 40px; width: 2px; height: 100%; background: var(--border); }
+  .stage.done::after { background: #10b981; }
+  .stage-dot { width: 40px; height: 40px; border-radius: 50%; border: 2px solid var(--border); display: flex; align-items: center; justify-content: center; font-size: 0.9rem; flex-shrink: 0; z-index: 1; background: white; }
+  .stage.done .stage-dot { border-color: #10b981; background: #10b981; color: white; }
+  .stage.active .stage-dot { border-color: var(--blue); background: var(--blue); color: white; box-shadow: 0 0 0 6px #dbeafe; }
+  .stage-content { padding-top: 0.4rem; flex: 1; }
+  .stage-label { font-size: 0.9rem; font-weight: 700; color: var(--text); }
+  .stage:not(.done):not(.active) .stage-label { color: var(--muted); }
+  .stage-ts { font-size: 0.78rem; color: var(--muted); }
+  .stage.done .stage-ts { color: #10b981; font-weight: 600; }
+  .advance-btn { background: linear-gradient(135deg, var(--purple), #a855f7); color: white; border: none; border-radius: 12px; padding: 0.85rem 1.75rem; font-size: 0.95rem; font-weight: 700; cursor: pointer; width: 100%; transition: all 0.2s; box-shadow: 0 4px 12px rgba(91,33,182,0.3); margin-top: 1rem; }
+  .advance-btn:hover { transform: translateY(-2px); box-shadow: 0 8px 20px rgba(91,33,182,0.4); }
+  .advance-btn:disabled { opacity: 0.5; transform: none; cursor: not-allowed; }
+  /* SLA */
+  .sla-bar { position: relative; height: 14px; background: var(--border); border-radius: 999px; overflow: hidden; margin: 0.6rem 0; }
+  .sla-fill { height: 100%; border-radius: 999px; transition: width 0.6s ease; }
+  .sla-green .sla-fill { background: #10b981; }
+  .sla-yellow .sla-fill { background: #f59e0b; }
+  .sla-red .sla-fill { background: #ef4444; }
+  .sla-black .sla-fill { background: #1e293b; }
+  /* MAP */
+  #detailMap { height: 200px; border-radius: 10px; z-index: 0; }
+  /* TEAM */
+  .worker-card { border: 2px solid var(--border); border-radius: 12px; padding: 1rem; margin-bottom: 0.75rem; cursor: pointer; transition: all 0.2s; position: relative; }
+  .worker-card:hover { border-color: var(--purple); background: #faf5ff; }
+  .worker-card.selected { border-color: var(--purple); background: #f5f3ff; }
+  .worker-card.lead-mark::after { content: '⭐ Lead'; position: absolute; top: 0.5rem; right: 0.75rem; font-size: 0.72rem; font-weight: 700; color: var(--purple); }
+  .worker-name { font-weight: 700; font-size: 0.9rem; color: var(--text); }
+  .worker-meta { font-size: 0.78rem; color: var(--muted); margin-top: 0.2rem; }
+  .worker-badge { display: inline-block; font-size: 0.72rem; padding: 0.2rem 0.5rem; border-radius: 6px; font-weight: 700; }
+  .status-free { background: #d1fae5; color: #064e3b; }
+  .status-busy { background: #fef9c3; color: #854d0e; }
+  .status-off_duty { background: #f1f5f9; color: var(--muted); }
+  .assign-btn { background: #10b981; color: white; border: none; border-radius: 10px; padding: 0.75rem 1.25rem; font-size: 0.85rem; font-weight: 700; cursor: pointer; width: 100%; margin-top: 0.5rem; }
+  .assign-btn:disabled { opacity: 0.5; }
+  /* NOTES */
+  .note-entry { background: #f8fafc; border-radius: 10px; padding: 0.8rem 1rem; margin-bottom: 0.6rem; border: 1px solid var(--border); }
+  .note-by { font-size: 0.78rem; font-weight: 700; color: var(--purple); margin-bottom: 0.25rem; }
+  .note-text { font-size: 0.88rem; color: var(--text); }
+  .note-date { font-size: 0.75rem; color: var(--muted); margin-top: 0.2rem; }
+  .note-input { width: 100%; padding: 0.7rem; border: 2px solid var(--border); border-radius: 10px; font-size: 0.9rem; font-family: inherit; outline: none; resize: none; }
+  .note-input:focus { border-color: var(--purple); }
+  .note-submit { background: var(--purple); color: white; border: none; border-radius: 10px; padding: 0.6rem 1.25rem; font-size: 0.85rem; font-weight: 700; cursor: pointer; margin-top: 0.5rem; }
+  .complaint-photo { width: 100%; max-height: 220px; object-fit: cover; border-radius: 12px; }
+  .info-row { display: flex; justify-content: space-between; margin-bottom: 0.6rem; font-size: 0.88rem; }
+  .info-label { color: var(--muted); font-weight: 500; }
+  .info-value { font-weight: 700; color: var(--text); }
+  .toast { position: fixed; bottom: 1.5rem; right: 1.5rem; background: #1e293b; color: white; padding: 1rem 1.5rem; border-radius: 12px; font-size: 0.9rem; font-weight: 500; z-index: 9999; transform: translateY(100px); opacity: 0; transition: all 0.35s ease; box-shadow: 0 8px 32px rgba(0,0,0,0.25); max-width: 320px; }
+  .toast.show { transform: translateY(0); opacity: 1; }
+  .toast.success { background: linear-gradient(135deg, #064e3b, #10b981); }
+  @media (max-width: 800px) { .two-col { grid-template-columns: 1fr; } }
+</style>
+</head>
+<body>
+<nav>
+  <a href="/admin/dashboard.html" class="nav-brand">🏛️ Civic Connect <span style="font-size:0.7rem;background:rgba(255,255,255,0.2);padding:0.2rem 0.5rem;border-radius:6px;margin-left:0.4rem">ADMIN</span></a>
+  <div class="nav-links">
+    <a href="/admin/dashboard.html">Dashboard</a>
+    <a href="/admin/map.html">Map</a>
+    <a href="/admin/workers.html">Workers</a>
+    <a href="/admin/analytics.html">Analytics</a>
+  </div>
+</nav>
+
+<div class="main">
+  <a href="/admin/dashboard.html" class="back-link">← Back to Dashboard</a>
+  <div id="content" style="color:var(--muted);text-align:center;padding:4rem;">Loading complaint...</div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script>
+const token = localStorage.getItem('token');
+const role = localStorage.getItem('role');
+if (!token || role !== 'admin') window.location.href = '/admin/login.html';
+
+const params = new URLSearchParams(location.search);
+const id = params.get('id');
+if (!id) window.location.href = '/admin/dashboard.html';
+
+const STAGES = [
+  '📥 Complaint Received', '🔍 Verified by Authority', '👷 Team Assembled',
+  '🚛 Team Dispatched', '🔧 Work Started', '⚙️ Work Halfway Done',
+  '🧪 Final Inspection', '✅ Issue Resolved'
+];
+
+let complaint = null, workers = [];
+let selectedWorkers = new Set(), leadWorkerId = null;
+
+async function load() {
+  try {
+    const [cRes, wRes] = await Promise.all([
+      fetch(`/complaints/${id}`, { headers: { Authorization: 'Bearer ' + token } }),
+      fetch('/workers/available', { headers: { Authorization: 'Bearer ' + token } })
+    ]);
+    complaint = await cRes.json();
+    workers = await wRes.json();
+    render();
+  } catch (err) {
+    document.getElementById('content').innerHTML = '<div style="text-align:center;padding:4rem;color:var(--muted)">Failed to load complaint.</div>';
+  }
+}
+
+function render() {
+  const c = complaint;
+  const ts = c.stage_timestamps || {};
+  const now = new Date();
+  const sla = c.sla_deadline ? new Date(c.sla_deadline) : null;
+  const created = new Date(c.created_at);
+  let slaClass = 'sla-green', slaPct = 100, slaLabel = 'No SLA';
+
+  if (sla) {
+    const totalMs = sla - created;
+    const used = (now - created) / totalMs;
+    slaPct = Math.min(100, Math.max(0, Math.round(used * 100)));
+    if (sla < now) { slaClass = 'sla-black'; slaLabel = 'SLA BREACHED'; }
+    else if (slaPct > 75) { slaClass = 'sla-red'; }
+    else if (slaPct > 50) { slaClass = 'sla-yellow'; }
+    else { slaClass = 'sla-green'; }
+    const remH = Math.max(0, Math.floor((sla - now) / 3600000));
+    slaLabel = sla < now ? '⛔ BREACHED' : `${remH > 24 ? Math.floor(remH/24)+'d ' : ''}${remH%24}h remaining`;
+  }
+
+  const notes = c.notes || [];
+
+  document.getElementById('content').innerHTML = `
+    <div style="display:flex;align-items:flex-start;justify-content:space-between;flex-wrap:wrap;gap:1rem;margin-bottom:1.5rem">
+      <div>
+        <div style="font-size:0.8rem;color:var(--muted);font-weight:600;text-transform:uppercase;letter-spacing:0.5px;margin-bottom:0.3rem">Complaint #${c.id}</div>
+        <h1 style="font-size:1.6rem;font-weight:800;color:var(--text);margin-bottom:0.5rem">${c.category}</h1>
+        <div style="display:flex;gap:0.5rem;flex-wrap:wrap">
+          <span class="badge badge-${c.status}">${c.status === 'in_progress' ? '🔄 In Progress' : c.status === 'resolved' ? '✅ Resolved' : '⏳ Pending'}</span>
+          <span class="badge badge-${c.severity?.toLowerCase()}">${c.severity}</span>
+          ${c.ai_detected ? `<span class="badge" style="background:#eff6ff;color:#1D4ED8">🤖 AI (${c.ai_confidence}%)</span>` : ''}
+          ${c.priority_boosted ? '<span class="badge" style="background:#fef9c3;color:#854d0e">⚡ Priority</span>' : ''}
+        </div>
+      </div>
+    </div>
+
+    <div class="two-col">
+      <!-- LEFT COLUMN -->
+      <div>
+        <!-- Info Card -->
+        <div class="section">
+          <div class="section-title">📋 Complaint Info</div>
+          <p style="font-size:0.92rem;color:var(--text);margin-bottom:1rem;line-height:1.6">${c.description}</p>
+          ${c.photo_url ? `<img src="${c.photo_url}" class="complaint-photo" alt="Photo" onerror="this.style.display='none'" />` : ''}
+          <div style="margin-top:1rem">
+            <div class="info-row"><span class="info-label">Citizen</span><span class="info-value">${c.citizen_name || 'N/A'} <span style="font-size:0.78rem;color:var(--muted)">${c.citizen_email || ''}</span></span></div>
+            <div class="info-row"><span class="info-label">Submitted</span><span class="info-value">${new Date(c.created_at).toLocaleString()}</span></div>
+            <div class="info-row"><span class="info-label">Location</span><span class="info-value">${c.latitude ? c.latitude.toFixed(5) + ', ' + c.longitude.toFixed(5) : '—'}</span></div>
+            <div class="info-row"><span class="info-label">SLA Deadline</span><span class="info-value">${sla ? sla.toLocaleString() : '—'}</span></div>
+            <div class="info-row"><span class="info-label">Upvotes</span><span class="info-value">👍 ${c.upvotes}</span></div>
+          </div>
+        </div>
+
+        <!-- SLA -->
+        <div class="section">
+          <div class="section-title">⏱️ SLA Status</div>
+          <div style="display:flex;justify-content:space-between;font-size:0.85rem;margin-bottom:0.4rem">
+            <span>${slaLabel}</span><span style="font-weight:700">${slaPct}% used</span>
+          </div>
+          <div class="sla-bar ${slaClass}">
+            <div class="sla-fill" style="width:${slaPct}%"></div>
+          </div>
+        </div>
+
+        <!-- Map -->
+        ${c.latitude ? `
+        <div class="section">
+          <div class="section-title">📍 Location Map</div>
+          <div id="detailMap"></div>
+        </div>` : ''}
+
+        <!-- Notes -->
+        <div class="section">
+          <div class="section-title">📝 Admin Notes</div>
+          <div id="notesList">
+            ${notes.length ? notes.map(n => `
+              <div class="note-entry">
+                <div class="note-by">${n.by}</div>
+                <div class="note-text">${n.text}</div>
+                <div class="note-date">${new Date(n.at).toLocaleString()}</div>
+              </div>`).join('') : '<div style="font-size:0.88rem;color:var(--muted);margin-bottom:1rem">No notes yet.</div>'}
+          </div>
+          <textarea class="note-input" id="noteInput" rows="2" placeholder="Add a note..."></textarea>
+          <button class="note-submit" onclick="addNote()">Add Note</button>
+        </div>
+      </div>
+
+      <!-- RIGHT COLUMN -->
+      <div>
+        <!-- Pipeline + Advance -->
+        <div class="section">
+          <div class="section-title">📍 Resolution Pipeline — Stage ${c.current_stage}/7</div>
+          <div>
+            ${STAGES.map((label, i) => {
+              const done = i < c.current_stage;
+              const active = i === c.current_stage;
+              const tsVal = ts[String(i)];
+              return `<div class="stage ${done ? 'done' : active ? 'active' : ''}">
+                <div class="stage-dot">${done ? '✓' : i}</div>
+                <div class="stage-content">
+                  <div class="stage-label">${label}</div>
+                  <div class="stage-ts">${tsVal ? new Date(tsVal).toLocaleString() : (done ? 'Completed' : 'Pending')}</div>
+                </div>
+              </div>`;
+            }).join('')}
+          </div>
+          ${c.current_stage < 7 ? `
+            <button class="advance-btn" id="advanceBtn" onclick="advanceStage()">
+              ▶ Advance to Stage ${c.current_stage + 1}: ${STAGES[c.current_stage + 1]?.split(' ').slice(1).join(' ')}
+            </button>` : '<div style="text-align:center;color:#10b981;font-weight:700;margin-top:1rem">✅ Fully Resolved!</div>'}
+        </div>
+
+        <!-- Team Assignment -->
+        <div class="section">
+          <div class="section-title">👷 Team Assignment</div>
+          <p style="font-size:0.82rem;color:var(--muted);margin-bottom:1rem">Click to select workers. First selected = Lead.</p>
+          <div id="workersList">
+            ${workers.map(w => `
+              <div class="worker-card" id="wcard_${w.id}" onclick="toggleWorker(${w.id})">
+                <div style="display:flex;align-items:center;justify-content:space-between">
+                  <div class="worker-name">${w.name}</div>
+                  <span class="worker-badge status-${w.status}">${w.status}</span>
+                </div>
+                <div class="worker-meta">
+                  ${w.department} · 📞 ${w.phone || '—'} · ${w.active_job_count} active job${w.active_job_count !== 1 ? 's' : ''}
+                  ${w.active_job_count >= 3 ? '⚠️ High load' : ''}
+                  ${w.avg_resolution_hours ? ` · avg ${w.avg_resolution_hours}h/job` : ''}
+                </div>
+              </div>`).join('')}
+          </div>
+          <button class="assign-btn" id="assignBtn" onclick="assignTeam()">Assign Selected Team</button>
+        </div>
+      </div>
+    </div>
+  `;
+
+  // Init map
+  if (c.latitude) {
+    setTimeout(() => {
+      const map = L.map('detailMap').setView([c.latitude, c.longitude], 15);
+      L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(map);
+      L.marker([c.latitude, c.longitude]).addTo(map).bindPopup(`#${c.id}: ${c.category}`).openPopup();
+    }, 100);
+  }
+}
+
+function toggleWorker(wid) {
+  const w = workers.find(w => w.id === wid);
+  if (w && w.status === 'off_duty') { showToast('This worker is off duty'); return; }
+  if (selectedWorkers.has(wid)) {
+    selectedWorkers.delete(wid);
+    if (leadWorkerId === wid) leadWorkerId = selectedWorkers.size ? [...selectedWorkers][0] : null;
+  } else {
+    selectedWorkers.add(wid);
+    if (!leadWorkerId) leadWorkerId = wid;
+  }
+  document.querySelectorAll('[id^="wcard_"]').forEach(card => {
+    const cardId = parseInt(card.id.split('_')[1]);
+    card.classList.toggle('selected', selectedWorkers.has(cardId));
+    card.classList.toggle('lead-mark', cardId === leadWorkerId);
+  });
+}
+
+async function assignTeam() {
+  if (!selectedWorkers.size) { showToast('Select at least one worker'); return; }
+  const btn = document.getElementById('assignBtn');
+  btn.disabled = true; btn.textContent = 'Assigning...';
+  try {
+    const res = await fetch(`/complaints/${id}/team`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + token },
+      body: JSON.stringify({ worker_ids: [...selectedWorkers], lead_id: leadWorkerId })
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.detail);
+    showToast('✅ Team assigned successfully!', 'success');
+    selectedWorkers.clear(); leadWorkerId = null;
+  } catch (err) { showToast(err.message); }
+  finally { btn.disabled = false; btn.textContent = 'Assign Selected Team'; }
+}
+
+async function advanceStage() {
+  const btn = document.getElementById('advanceBtn');
+  btn.disabled = true; btn.textContent = '⌛ Advancing...';
+  try {
+    const res = await fetch(`/complaints/${id}/stage`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + token },
+      body: JSON.stringify({ admin_name: localStorage.getItem('name') || 'Admin' })
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.detail);
+    complaint = data.complaint;
+    render();
+    const msg = data.reward ? `✅ Stage advanced! +${data.reward.points_earned} pts awarded to citizen` : '✅ Stage advanced!';
+    showToast(msg, 'success');
+  } catch (err) { showToast(err.message); btn.disabled = false; btn.textContent = 'Advance Stage'; }
+}
+
+async function addNote() {
+  const text = document.getElementById('noteInput').value.trim();
+  if (!text) return;
+  try {
+    const res = await fetch(`/complaints/${id}/note`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + token },
+      body: JSON.stringify({ note: text, admin_name: localStorage.getItem('name') || 'Admin' })
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.detail);
+    document.getElementById('noteInput').value = '';
+    complaint.notes = data.notes;
+    const notesList = document.getElementById('notesList');
+    notesList.innerHTML = data.notes.map(n => `
+      <div class="note-entry">
+        <div class="note-by">${n.by}</div>
+        <div class="note-text">${n.text}</div>
+        <div class="note-date">${new Date(n.at).toLocaleString()}</div>
+      </div>`).join('');
+    showToast('Note added', 'success');
+  } catch (err) { showToast(err.message); }
+}
+
+function showToast(msg, type = '') {
+  const t = document.getElementById('toast');
+  t.textContent = msg; t.className = 'toast ' + type;
+  t.classList.add('show');
+  setTimeout(() => t.classList.remove('show'), 3500);
+}
+
+load();
+</script>
+</body>
+</html>
