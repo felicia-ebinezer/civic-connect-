@@ -32,16 +32,16 @@ User Side
 🏗️ Tech Stack
 ---
 Frontend
-HTML, CSS, JavaScript
+- HTML, CSS, JavaScript
 (Optional: React.js)
 
 Backend
-Node.js
-Express.js
-Database
-MongoDB / MySQL
-AI / ML
-TensorFlow / OpenCV (for image detection)
+- Node.js
+- Express.js
+- Database
+- MongoDB / MySQL
+- AI / ML
+- TensorFlow / OpenCV (for image detection)
 
 ---
 📂 Project Structure
@@ -59,25 +59,25 @@ Civic-Connect/
 ---
 🧩 Modules
 ---
-User Management
-Issue Reporting
-AI Detection
-Complaint Management
-Reward System
-Admin Dashboard
-Notification System
-Analytics & Reporting
+- User Management
+- Issue Reporting
+- AI Detection
+- Complaint Management
+- Reward System
+- Admin Dashboard
+- Notification System
+- Analytics & Reporting
 ---
 
 📊 System Workflow
 ---
-User uploads image of issue
-AI detects issue type
-Description auto-generated
-User submits complaint with location
-Admin verifies and assigns
-Status updated (tracked by user)
-Rewards given for valid reports
+- User uploads image of issue
+- AI detects issue type
+- Description auto-generated
+- User submits complaint with location
+- Admin verifies and assigns
+- Status updated (tracked by user)
+- Rewards given for valid reports
 
 ---
 "Connecting citizens to a better city"
