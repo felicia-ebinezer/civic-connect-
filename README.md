@@ -6,7 +6,7 @@ The platform integrates AI-based image detection to automatically identify issue
 
 ---
 🚀Features
-
+---
 User Side
 - Easy complaint submission with image upload
 - AI-based issue detection & auto description
@@ -23,13 +23,14 @@ User Side
 
 ---
 🧠AI Integration
+---
 Uses Machine Learning / CNN models for image classification
 Detects civic issues automatically from uploaded images
 Generates descriptions to reduce manual effort
 
 ---
 🏗️ Tech Stack
-
+---
 Frontend
 HTML, CSS, JavaScript
 (Optional: React.js)
@@ -44,7 +45,7 @@ TensorFlow / OpenCV (for image detection)
 
 ---
 📂 Project Structure
-
+---
 Civic-Connect/
 │
 ├── frontend/        # UI (HTML/CSS/JS)
@@ -57,6 +58,7 @@ Civic-Connect/
 
 ---
 🧩 Modules
+---
 User Management
 Issue Reporting
 AI Detection
@@ -68,6 +70,7 @@ Analytics & Reporting
 ---
 
 📊 System Workflow
+---
 User uploads image of issue
 AI detects issue type
 Description auto-generated
