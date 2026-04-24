@@ -43,6 +43,7 @@ TensorFlow / OpenCV (for image detection)
 
 ---
 ##📂 Project Structure
+---
 Civic-Connect/
 │
 ├── frontend/        # UI (HTML/CSS/JS)
