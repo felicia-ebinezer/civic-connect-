@@ -24,9 +24,9 @@ User Side
 ---
 🧠AI Integration
 ---
-Uses Machine Learning / CNN models for image classification
-Detects civic issues automatically from uploaded images
-Generates descriptions to reduce manual effort
+- Uses Machine Learning / CNN models for image classification
+- Detects civic issues automatically from uploaded images
+- Generates descriptions to reduce manual effort
 
 ---
 🏗️ Tech Stack
