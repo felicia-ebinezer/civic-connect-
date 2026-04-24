@@ -1,4 +1,5 @@
 🌆 CIVIC CONNECT
+---
 Civic Connect is an intelligent civic issue reporting platform that bridges the gap between citizens and local authorities. It enables users to report public issues such as potholes, garbage overflow, and broken street lights using images and location details.
 
 The platform integrates AI-based image detection to automatically identify issues and generate descriptions, making the reporting process faster, smarter, and more accurate.
