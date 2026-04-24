@@ -1,10 +1,10 @@
-##🌆 CIVIC CONNECT
+🌆 CIVIC CONNECT
 Civic Connect is an intelligent civic issue reporting platform that bridges the gap between citizens and local authorities. It enables users to report public issues such as potholes, garbage overflow, and broken street lights using images and location details.
 
 The platform integrates AI-based image detection to automatically identify issues and generate descriptions, making the reporting process faster, smarter, and more accurate.
 
 ---
-##🚀Features
+🚀Features
 
 User Side
 - Easy complaint submission with image upload
@@ -21,13 +21,13 @@ User Side
 - Dashboard with analytics & reports
 
 ---
-##🧠AI Integration
+🧠AI Integration
 Uses Machine Learning / CNN models for image classification
 Detects civic issues automatically from uploaded images
 Generates descriptions to reduce manual effort
 
 ---
-##🏗️ Tech Stack
+🏗️ Tech Stack
 
 Frontend
 HTML, CSS, JavaScript
@@ -42,8 +42,8 @@ AI / ML
 TensorFlow / OpenCV (for image detection)
 
 ---
-##📂 Project Structure
----
+📂 Project Structure
+
 Civic-Connect/
 │
 ├── frontend/        # UI (HTML/CSS/JS)
@@ -55,7 +55,7 @@ Civic-Connect/
 └── README.md
 
 ---
-##🧩 Modules
+🧩 Modules
 User Management
 Issue Reporting
 AI Detection
@@ -66,7 +66,7 @@ Notification System
 Analytics & Reporting
 ---
 
-##📊 System Workflow
+📊 System Workflow
 User uploads image of issue
 AI detects issue type
 Description auto-generated
