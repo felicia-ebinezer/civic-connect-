@@ -44,17 +44,34 @@ Backend
 - TensorFlow / OpenCV (for image detection)
 
 ---
-📂 Project Structure
----
+
+## 📂 Project Structure
+
+```
 Civic-Connect/
 │
-├── frontend/        # UI (HTML/CSS/JS)
-├── backend/         # API (Node.js/Express)
-├── models/          # Database models
-├── routes/          # API routes
-├── uploads/         # Image storage
-├── ai-module/       # AI detection logic
-└── README.md
+├── frontend/              # User interface (HTML, CSS, JS / React)
+│   ├── public/
+│   └── src/
+│
+├── backend/               # Server-side code (Node.js / Express)
+│   ├── routes/            # API routes
+│   ├── models/            # Database schemas
+│   ├── controllers/       # Business logic
+│   └── middleware/        # Auth & validations
+│
+├── ai-module/             # AI/ML model for issue detection
+│
+├── uploads/               # Stored complaint images
+│
+├── config/                # DB & environment configs
+│
+├── .env                   # Environment variables
+├── package.json           # Dependencies
+├── server.js              # Entry point
+│
+└── README.md              # Project documentation
+```
 
 ---
 🧩 Modules
